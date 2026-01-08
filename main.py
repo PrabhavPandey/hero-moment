@@ -323,16 +323,6 @@ Select ONE hero moment (30–45 seconds) — the single most powerful continuous
 Prefer:
 - Concrete examples over vague claims
 - Moments where the candidate sounds confident and authentic
-- Clear link to growth, marketing, or community outcomes
-
-Return the result in this exact JSON format (no extra text):
-{
-  "start_time_seconds": <number>,
-  "end_time_seconds": <number>,
-  "reason": "<2-3 sentence explanation of why this segment is the hero moment>",
-  "verbatim_snippet": "<exact transcript of the chosen 30–45 second segment>",
-  "summary": "<1-2 sentence summary of what the candidate is conveying>"
-}
 
 Constraints:
 - start_time_seconds and end_time_seconds must be numerical (in seconds)
