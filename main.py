@@ -124,6 +124,28 @@ st.markdown("""
         line-height: 1.6;
     }
     
+    .vibe-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .vibe-list li {
+        color: #a0a0a0;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        padding-left: 1.2rem;
+        position: relative;
+        margin-bottom: 0.5rem;
+    }
+    
+    .vibe-list li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: #4a4a4a;
+    }
+    
     /* Audio player */
     audio {
         width: 100%;
@@ -328,7 +350,7 @@ Return in JSON format:
   "start_time_seconds": <number>,
   "end_time_seconds": <number>,
   "verbatim_snippet": "<exact transcript of the 30-45 second segment>",
-  "reason": "<2-3 sentences explaining what makes this their vibe — their energy, mindset, or what drives them>"
+  "vibe_bullets": ["<clear, punchy bullet 1>", "<clear, punchy bullet 2>", "<clear, punchy bullet 3>"]
 }
 
 Constraints:
@@ -422,11 +444,15 @@ def process_audio(uploaded_file):
                 st.markdown('<p class="section-label">the clip</p>', unsafe_allow_html=True)
                 st.markdown(f'<div class="transcript-text">"{transcript}"</div>', unsafe_allow_html=True)
             
-            # Display reason (vibe)
-            reason = result.get('reason')
-            if reason:
+            # Display vibe bullets
+            vibe_bullets = result.get('vibe_bullets') or result.get('reason')
+            if vibe_bullets:
                 st.markdown('<p class="section-label">what\'s their vibe</p>', unsafe_allow_html=True)
-                st.markdown(f'<p class="explanation-text">{reason}</p>', unsafe_allow_html=True)
+                if isinstance(vibe_bullets, list):
+                    bullets_html = ''.join([f'<li>{bullet}</li>' for bullet in vibe_bullets])
+                    st.markdown(f'<ul class="vibe-list">{bullets_html}</ul>', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'<p class="explanation-text">{vibe_bullets}</p>', unsafe_allow_html=True)
             
             st.markdown('</div>', unsafe_allow_html=True)
             
