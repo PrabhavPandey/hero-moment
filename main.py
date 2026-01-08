@@ -179,23 +179,50 @@ st.markdown('<p class="hero-subtitle">Find the most compelling 30 seconds from a
 def parse_json_response(response_text):
     """Parse JSON response from Gemini"""
     try:
-        # Try to find JSON in the response
-        json_match = re.search(r'\{[^{}]*"start_time_seconds"[^{}]*\}', response_text, re.DOTALL)
-        if json_match:
-            return json.loads(json_match.group())
-        
-        # Try parsing the whole response as JSON
+        # Clean up markdown code blocks
         clean_text = response_text.strip()
-        if clean_text.startswith('```json'):
-            clean_text = clean_text[7:]
-        if clean_text.startswith('```'):
-            clean_text = clean_text[3:]
-        if clean_text.endswith('```'):
-            clean_text = clean_text[:-3]
+        if '```json' in clean_text:
+            clean_text = clean_text.split('```json')[1]
+        if '```' in clean_text:
+            clean_text = clean_text.split('```')[0]
+        clean_text = clean_text.strip()
         
-        return json.loads(clean_text.strip())
+        # Try parsing as JSON
+        if clean_text.startswith('{'):
+            return json.loads(clean_text)
+        
+        # Try to find JSON object in the response
+        start_idx = response_text.find('{')
+        end_idx = response_text.rfind('}')
+        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+            json_str = response_text[start_idx:end_idx + 1]
+            return json.loads(json_str)
+        
+        return None
     except:
         return None
+
+def normalize_timestamps(result):
+    """Ensure timestamps are numeric seconds"""
+    start = result.get('start_time_seconds')
+    end = result.get('end_time_seconds')
+    
+    # Convert string timestamps like "1:30" to seconds
+    if isinstance(start, str) and ':' in start:
+        parts = start.split(':')
+        start = int(parts[0]) * 60 + int(parts[1])
+    if isinstance(end, str) and ':' in end:
+        parts = end.split(':')
+        end = int(parts[0]) * 60 + int(parts[1])
+    
+    # Ensure they're numbers
+    try:
+        result['start_time_seconds'] = float(start) if start is not None else None
+        result['end_time_seconds'] = float(end) if end is not None else None
+    except:
+        pass
+    
+    return result
 
 def fallback_parse_response(response_text):
     """Fallback parsing for non-JSON responses"""
@@ -207,20 +234,30 @@ def fallback_parse_response(response_text):
         'summary': None
     }
     
-    # Try to extract timestamps
+    # Try to extract timestamps - multiple patterns
     patterns = [
+        r'"start_time_seconds"\s*:\s*(\d+(?:\.\d+)?)',  # JSON-style
+        r'"end_time_seconds"\s*:\s*(\d+(?:\.\d+)?)',
         r'(\d{1,2}:\d{2})\s*[-–to]+\s*(\d{1,2}:\d{2})',
         r'from\s*(\d{1,2}:\d{2})\s*to\s*(\d{1,2}:\d{2})',
     ]
     
-    for pattern in patterns:
-        matches = re.findall(pattern, response_text, re.IGNORECASE)
-        if matches:
-            parts = matches[0][0].split(':')
-            result['start_time_seconds'] = int(parts[0]) * 60 + int(parts[1])
-            parts = matches[0][1].split(':')
-            result['end_time_seconds'] = int(parts[0]) * 60 + int(parts[1])
-            break
+    # Try JSON-style first
+    start_match = re.search(r'"start_time_seconds"\s*:\s*(\d+(?:\.\d+)?)', response_text)
+    end_match = re.search(r'"end_time_seconds"\s*:\s*(\d+(?:\.\d+)?)', response_text)
+    if start_match and end_match:
+        result['start_time_seconds'] = float(start_match.group(1))
+        result['end_time_seconds'] = float(end_match.group(1))
+    else:
+        # Try MM:SS format
+        for pattern in patterns[2:]:
+            matches = re.findall(pattern, response_text, re.IGNORECASE)
+            if matches:
+                parts = matches[0][0].split(':')
+                result['start_time_seconds'] = int(parts[0]) * 60 + int(parts[1])
+                parts = matches[0][1].split(':')
+                result['end_time_seconds'] = int(parts[0]) * 60 + int(parts[1])
+                break
     
     # Extract transcript from quotes
     quote_matches = re.findall(r'"([^"]{30,})"', response_text)
@@ -228,9 +265,18 @@ def fallback_parse_response(response_text):
         result['verbatim_snippet'] = max(quote_matches, key=len)
     
     # Extract reason
-    why_match = re.search(r'[Ww]hy[^:]*:?\s*\n*(.+?)(?:\n\n|\Z)', response_text, re.DOTALL)
-    if why_match:
-        result['reason'] = why_match.group(1).strip()[:500]
+    reason_match = re.search(r'"reason"\s*:\s*"([^"]+)"', response_text)
+    if reason_match:
+        result['reason'] = reason_match.group(1)
+    else:
+        why_match = re.search(r'[Ww]hy[^:]*:?\s*\n*(.+?)(?:\n\n|\Z)', response_text, re.DOTALL)
+        if why_match:
+            result['reason'] = why_match.group(1).strip()[:500]
+    
+    # Extract summary
+    summary_match = re.search(r'"summary"\s*:\s*"([^"]+)"', response_text)
+    if summary_match:
+        result['summary'] = summary_match.group(1)
     
     return result
 
@@ -342,6 +388,9 @@ def process_audio(uploaded_file):
             result = parse_json_response(response_text)
             if not result:
                 result = fallback_parse_response(response_text)
+            
+            # Normalize timestamps to ensure they're numeric
+            result = normalize_timestamps(result)
             
             st.markdown('<div class="result-section">', unsafe_allow_html=True)
             
