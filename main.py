@@ -10,7 +10,7 @@ import google.generativeai as genai
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 
 st.set_page_config(
-    page_title="Hero Moment",
+    page_title="hero moment",
     page_icon="✦",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -103,7 +103,6 @@ st.markdown("""
         color: #6b6b6b;
         font-size: 0.75rem;
         font-weight: 500;
-        text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-bottom: 0.8rem;
     }
@@ -173,8 +172,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Header
-st.markdown('<h1 class="hero-title">✦ Hero Moment</h1>', unsafe_allow_html=True)
-st.markdown('<p class="hero-subtitle">Find the most compelling 30 seconds from any interview</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="hero-title">✦ hero moment</h1>', unsafe_allow_html=True)
+st.markdown('<p class="hero-subtitle">find the most compelling 30 seconds from any interview</p>', unsafe_allow_html=True)
 
 def parse_json_response(response_text):
     """Parse JSON response from Gemini"""
@@ -355,9 +354,9 @@ def main():
     if uploaded_file:
         st.markdown(f"<p style='color: #6b6b6b; font-size: 0.85rem;'>📎 {uploaded_file.name}</p>", unsafe_allow_html=True)
 
-    if st.button("Find Hero Moment", disabled=not uploaded_file):
+    if st.button("find hero moment", disabled=not uploaded_file):
         if uploaded_file:
-            with st.spinner("Analyzing..."):
+            with st.spinner("analyzing..."):
                 process_audio(uploaded_file)
 
 def process_audio(uploaded_file):
@@ -401,7 +400,7 @@ def process_audio(uploaded_file):
                     
                     with open(hero_file_path, 'rb') as f:
                         st.download_button(
-                            label="Download clip",
+                            label="download clip",
                             data=f,
                             file_name=f"hero_{filename}",
                             mime="audio/ogg"
@@ -412,22 +411,19 @@ def process_audio(uploaded_file):
             # Display transcript
             transcript = result.get('verbatim_snippet')
             if transcript and len(transcript) > 30:
-                st.markdown('<p class="section-label">The Clip</p>', unsafe_allow_html=True)
+                st.markdown('<p class="section-label">the clip</p>', unsafe_allow_html=True)
                 st.markdown(f'<div class="transcript-text">"{transcript}"</div>', unsafe_allow_html=True)
             
-            # Display reason
+            # Display reason (vibe)
             reason = result.get('reason')
             if reason:
-                st.markdown('<p class="section-label">Why This Is The Hero Moment</p>', unsafe_allow_html=True)
+                st.markdown('<p class="section-label">what\'s their vibe</p>', unsafe_allow_html=True)
                 st.markdown(f'<p class="explanation-text">{reason}</p>', unsafe_allow_html=True)
             
-            # Display summary if available
-            summary = result.get('summary')
-            if summary:
-                st.markdown('<p class="section-label">Summary</p>', unsafe_allow_html=True)
-                st.markdown(f'<p class="explanation-text">{summary}</p>', unsafe_allow_html=True)
-            
             st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Confetti celebration
+            st.balloons()
 
         os.unlink(temp_file_path)
 
