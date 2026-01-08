@@ -323,6 +323,14 @@ Prefer:
 - Concrete examples over vague claims
 - Moments where the candidate sounds confident and authentic
 
+Return in JSON format:
+{
+  "start_time_seconds": <number>,
+  "end_time_seconds": <number>,
+  "verbatim_snippet": "<exact transcript of the 30-45 second segment>",
+  "reason": "<2-3 sentences explaining what makes this their vibe — their energy, mindset, or what drives them>"
+}
+
 Constraints:
 - start_time_seconds and end_time_seconds must be numerical (in seconds)
 - Duration must be 30-45 seconds
