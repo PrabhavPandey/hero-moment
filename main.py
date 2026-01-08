@@ -3,8 +3,8 @@ import os
 import tempfile
 import requests
 import re
+import subprocess
 import google.generativeai as genai
-from pydub import AudioSegment
 
 # Get API key from Streamlit secrets (for deployment) or fallback for local dev
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
@@ -251,16 +251,20 @@ def extract_explanation_from_response(response_text):
     return None
 
 def extract_audio_segment(audio_path, start_seconds, end_seconds, output_path):
-    """Extract a segment from the audio file"""
+    """Extract a segment from the audio file using ffmpeg"""
     try:
-        audio = AudioSegment.from_ogg(audio_path)
-        start_ms = int(start_seconds * 1000)
-        end_ms = int(end_seconds * 1000)
-        end_ms = min(end_ms, len(audio))
-        
-        segment = audio[start_ms:end_ms]
-        segment.export(output_path, format="ogg")
-        return True
+        duration = end_seconds - start_seconds
+        cmd = [
+            'ffmpeg', '-y',
+            '-i', audio_path,
+            '-ss', str(start_seconds),
+            '-t', str(duration),
+            '-c:a', 'libvorbis',
+            '-q:a', '4',
+            output_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        return result.returncode == 0
     except Exception as e:
         st.error(f"Error extracting audio: {str(e)}")
         return False
