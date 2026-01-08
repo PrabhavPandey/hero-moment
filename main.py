@@ -3,6 +3,7 @@ import os
 import tempfile
 import re
 import subprocess
+import json
 import google.generativeai as genai
 
 # Get API key from Streamlit secrets (for deployment) or fallback for local dev
@@ -175,73 +176,63 @@ st.markdown("""
 st.markdown('<h1 class="hero-title">✦ Hero Moment</h1>', unsafe_allow_html=True)
 st.markdown('<p class="hero-subtitle">Find the most compelling 30 seconds from any interview</p>', unsafe_allow_html=True)
 
-def parse_timestamp(timestamp_str):
-    """Parse timestamp string like '0:45' or '1:25' to seconds"""
+def parse_json_response(response_text):
+    """Parse JSON response from Gemini"""
     try:
-        parts = timestamp_str.strip().split(':')
-        if len(parts) == 2:
-            minutes, seconds = int(parts[0]), int(parts[1])
-            return minutes * 60 + seconds
-        elif len(parts) == 3:
-            hours, minutes, seconds = int(parts[0]), int(parts[1]), int(parts[2])
-            return hours * 3600 + minutes * 60 + seconds
-        else:
-            return int(timestamp_str)
+        # Try to find JSON in the response
+        json_match = re.search(r'\{[^{}]*"start_time_seconds"[^{}]*\}', response_text, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group())
+        
+        # Try parsing the whole response as JSON
+        clean_text = response_text.strip()
+        if clean_text.startswith('```json'):
+            clean_text = clean_text[7:]
+        if clean_text.startswith('```'):
+            clean_text = clean_text[3:]
+        if clean_text.endswith('```'):
+            clean_text = clean_text[:-3]
+        
+        return json.loads(clean_text.strip())
     except:
         return None
 
-def extract_timestamps_from_response(response_text):
-    """Extract start and end timestamps from Gemini response"""
+def fallback_parse_response(response_text):
+    """Fallback parsing for non-JSON responses"""
+    result = {
+        'start_time_seconds': None,
+        'end_time_seconds': None,
+        'reason': None,
+        'verbatim_snippet': None,
+        'summary': None
+    }
+    
+    # Try to extract timestamps
     patterns = [
         r'(\d{1,2}:\d{2})\s*[-–to]+\s*(\d{1,2}:\d{2})',
         r'from\s*(\d{1,2}:\d{2})\s*to\s*(\d{1,2}:\d{2})',
-        r'(\d{1,2}:\d{2})',
     ]
     
     for pattern in patterns:
         matches = re.findall(pattern, response_text, re.IGNORECASE)
         if matches:
-            if isinstance(matches[0], tuple) and len(matches[0]) == 2:
-                start_time = parse_timestamp(matches[0][0])
-                end_time = parse_timestamp(matches[0][1])
-                if start_time is not None and end_time is not None:
-                    return start_time, end_time
-            elif isinstance(matches[0], str):
-                start_time = parse_timestamp(matches[0])
-                if start_time is not None:
-                    return start_time, start_time + 45
+            parts = matches[0][0].split(':')
+            result['start_time_seconds'] = int(parts[0]) * 60 + int(parts[1])
+            parts = matches[0][1].split(':')
+            result['end_time_seconds'] = int(parts[0]) * 60 + int(parts[1])
+            break
     
-    return None, None
-
-def extract_transcript_from_response(response_text):
-    """Extract the transcript portion from the response"""
+    # Extract transcript from quotes
     quote_matches = re.findall(r'"([^"]{30,})"', response_text)
     if quote_matches:
-        return max(quote_matches, key=len)
+        result['verbatim_snippet'] = max(quote_matches, key=len)
     
-    transcript_match = re.search(r'[Tt]ranscript[:\s]*\n+"?([^"]+)"?(?=\n\n|\n\d\.|\nWhy|\n\*\*)', response_text, re.DOTALL)
-    if transcript_match:
-        text = transcript_match.group(1).strip().strip('"')
-        if len(text) > 30:
-            return text
-    
-    return None
-
-def extract_explanation_from_response(response_text):
-    """Extract the explanation portion from the response"""
-    why_match = re.search(r'[Ww]hy\s+[Tt]his\s+[Cc]aptures[^:]*:?\s*\n*(.+?)(?:\n\n\d\.|\Z)', response_text, re.DOTALL)
+    # Extract reason
+    why_match = re.search(r'[Ww]hy[^:]*:?\s*\n*(.+?)(?:\n\n|\Z)', response_text, re.DOTALL)
     if why_match:
-        return why_match.group(1).strip()
+        result['reason'] = why_match.group(1).strip()[:500]
     
-    why_match = re.search(r'\d\.\s*[Ww]hy[^:]*:?\s*\n*(.+?)(?:\n\n|\Z)', response_text, re.DOTALL)
-    if why_match:
-        return why_match.group(1).strip()
-    
-    expl_match = re.search(r'"\s*\n\n(.{50,}?)(?:\n\n|\Z)', response_text, re.DOTALL)
-    if expl_match:
-        return expl_match.group(1).strip()
-    
-    return None
+    return result
 
 def extract_audio_segment(audio_path, start_seconds, end_seconds, output_path):
     """Extract a segment from the audio file using ffmpeg"""
@@ -269,19 +260,40 @@ def process_with_gemini(audio_path, api_key):
         
         audio_file = genai.upload_file(audio_path)
         
-        prompt = """This is an interview. Find the hero moment — the top 30-45 seconds that best help me understand the VIBE of this person.
+        prompt = """You are an assistant helping a recruiter extract the single best "hero moment" clip (30–45 seconds) from an interview audio file.
+Your goal is to find the most compelling segment that best represents the candidate's vibe, capability, and fit for the role
 
-I want to know who this person really is. Find the part where they reveal their passion, their drive, what makes them tick.
+Analyze the interview and identify moments where the candidate:
+- Shows clear ownership (built something end-to-end, led a project, took initiative)
+- Demonstrates impact (metrics, outcomes, growth, conversions, engagement)
+- Reveals strong vibe: energy, clarity of thought, storytelling, and self-awareness
 
-The best hero moment is when they talk about things they've built, projects they've created, or their journey — with real numbers and genuine excitement.
-Also parts where they talk about why they want to work at this company and why they are a good fit for the role.
+Ignore filler small talk, logistics, and very generic answers.
 
-Only include the CANDIDATE speaking. No interviewer. No back-and-forth.
+Select ONE hero moment (30–45 seconds) — the single most powerful continuous segment (no stitching) that:
+- A hiring manager could listen to and immediately "get" the candidate
+- Contains a complete mini-arc: context → what they did → outcome/learning
 
-Format:
-1. Timestamp: [START]-[END]
-2. Transcript: "[exact quote]"
-3. Why this captures their vibe: [brief explanation]"""
+Prefer:
+- Concrete examples over vague claims
+- Moments where the candidate sounds confident and authentic
+- Clear link to growth, marketing, or community outcomes
+
+Return the result in this exact JSON format (no extra text):
+{
+  "start_time_seconds": <number>,
+  "end_time_seconds": <number>,
+  "reason": "<2-3 sentence explanation of why this segment is the hero moment>",
+  "verbatim_snippet": "<exact transcript of the chosen 30–45 second segment>",
+  "summary": "<1-2 sentence summary of what the candidate is conveying>"
+}
+
+Constraints:
+- start_time_seconds and end_time_seconds must be numerical (in seconds)
+- Duration must be 30-45 seconds
+- verbatim_snippet must match exactly what is said
+- Choose only ONE hero moment
+- Only include the CANDIDATE speaking, no interviewer"""
 
         model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content([audio_file, prompt])
@@ -326,9 +338,15 @@ def process_audio(uploaded_file):
         response_text = process_with_gemini(temp_file_path, GEMINI_API_KEY)
         
         if response_text:
+            # Try JSON parsing first, fallback to regex
+            result = parse_json_response(response_text)
+            if not result:
+                result = fallback_parse_response(response_text)
+            
             st.markdown('<div class="result-section">', unsafe_allow_html=True)
             
-            start_time, end_time = extract_timestamps_from_response(response_text)
+            start_time = result.get('start_time_seconds')
+            end_time = result.get('end_time_seconds')
             
             if start_time is not None and end_time is not None:
                 start_str = f"{int(start_time // 60)}:{int(start_time % 60):02d}"
@@ -352,19 +370,23 @@ def process_audio(uploaded_file):
                     
                     os.unlink(hero_file_path)
             
-            transcript = extract_transcript_from_response(response_text)
-            explanation = extract_explanation_from_response(response_text)
-            
-            if transcript and len(transcript) > 50:
+            # Display transcript
+            transcript = result.get('verbatim_snippet')
+            if transcript and len(transcript) > 30:
                 st.markdown('<p class="section-label">The Clip</p>', unsafe_allow_html=True)
                 st.markdown(f'<div class="transcript-text">"{transcript}"</div>', unsafe_allow_html=True)
-                
-                if explanation:
-                    st.markdown('<p class="section-label">Why This Captures Their Vibe</p>', unsafe_allow_html=True)
-                    st.markdown(f'<p class="explanation-text">{explanation}</p>', unsafe_allow_html=True)
-            else:
-                st.markdown('<p class="section-label">Analysis</p>', unsafe_allow_html=True)
-                st.markdown(f'<div class="explanation-text">{response_text}</div>', unsafe_allow_html=True)
+            
+            # Display reason
+            reason = result.get('reason')
+            if reason:
+                st.markdown('<p class="section-label">Why This Is The Hero Moment</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="explanation-text">{reason}</p>', unsafe_allow_html=True)
+            
+            # Display summary if available
+            summary = result.get('summary')
+            if summary:
+                st.markdown('<p class="section-label">Summary</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="explanation-text">{summary}</p>', unsafe_allow_html=True)
             
             st.markdown('</div>', unsafe_allow_html=True)
 
