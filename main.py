@@ -169,6 +169,56 @@ st.markdown("""
         border: none;
         border-radius: 8px;
     }
+    
+    /* Tabs styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0;
+        background: #141415;
+        border-radius: 10px;
+        padding: 4px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background: transparent;
+        color: #6b6b6b;
+        border-radius: 8px;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: #2a2a2b;
+        color: #fafafa;
+    }
+    
+    .stTabs [data-baseweb="tab-highlight"] {
+        display: none;
+    }
+    
+    .stTabs [data-baseweb="tab-border"] {
+        display: none;
+    }
+    
+    /* Text input styling */
+    .stTextInput > div > div > input {
+        background: #141415;
+        border: 1px solid #2a2a2b;
+        border-radius: 10px;
+        color: #fafafa;
+        padding: 0.8rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .stTextInput > div > div > input:focus {
+        border-color: #3a3a3b;
+        box-shadow: none;
+    }
+    
+    .stTextInput > div > div > input::placeholder {
+        color: #4a4a4b;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -299,28 +349,126 @@ Format:
         st.error(f"Error: {str(e)}")
         return None
 
+def download_audio_from_url(url):
+    """Download audio file from URL and return the temp file path"""
+    try:
+        response = requests.get(url, stream=True, timeout=60)
+        response.raise_for_status()
+        
+        # Get file extension from URL or default to ogg
+        ext = 'ogg'
+        if '.' in url.split('/')[-1]:
+            ext = url.split('/')[-1].split('.')[-1].split('?')[0]
+        
+        with tempfile.NamedTemporaryFile(suffix=f'.{ext}', delete=False) as temp_file:
+            for chunk in response.iter_content(chunk_size=8192):
+                temp_file.write(chunk)
+            return temp_file.name, ext
+    except requests.exceptions.RequestException as e:
+        st.error(f"Failed to download audio: {str(e)}")
+        return None, None
+
 def main():
     # Check API key
     if not GEMINI_API_KEY:
         st.error("Please set GEMINI_API_KEY in Streamlit secrets")
         return
 
-    # File upload
-    uploaded_file = st.file_uploader(
-        "Drop your interview audio here",
-        type=['ogg', 'oga', 'mp3', 'wav', 'm4a'],
-        help="Supports OGG, MP3, WAV, M4A",
-        label_visibility="collapsed"
-    )
+    # Tabs for input method
+    tab1, tab2 = st.tabs(["Paste link", "Upload file"])
+    
+    with tab1:
+        audio_url = st.text_input(
+            "Audio URL",
+            placeholder="https://example.com/interview.ogg",
+            label_visibility="collapsed"
+        )
+        
+        if audio_url:
+            st.markdown(f"<p style='color: #6b6b6b; font-size: 0.85rem;'>🔗 {audio_url[:60]}{'...' if len(audio_url) > 60 else ''}</p>", unsafe_allow_html=True)
+        
+        if st.button("Find Hero Moment", key="url_btn", disabled=not audio_url):
+            if audio_url:
+                with st.spinner("Downloading audio..."):
+                    temp_path, ext = download_audio_from_url(audio_url)
+                
+                if temp_path:
+                    with st.spinner("Analyzing..."):
+                        process_audio_from_path(temp_path, ext)
+    
+    with tab2:
+        uploaded_file = st.file_uploader(
+            "Drop your interview audio here",
+            type=['ogg', 'oga', 'mp3', 'wav', 'm4a'],
+            help="Supports OGG, MP3, WAV, M4A",
+            label_visibility="collapsed"
+        )
 
-    if uploaded_file:
-        st.markdown(f"<p style='color: #6b6b6b; font-size: 0.85rem;'>📎 {uploaded_file.name}</p>", unsafe_allow_html=True)
-
-    # Process button
-    if st.button("Find Hero Moment", disabled=not uploaded_file):
         if uploaded_file:
-            with st.spinner("Analyzing..."):
-                process_audio(uploaded_file)
+            st.markdown(f"<p style='color: #6b6b6b; font-size: 0.85rem;'>📎 {uploaded_file.name}</p>", unsafe_allow_html=True)
+
+        if st.button("Find Hero Moment", key="upload_btn", disabled=not uploaded_file):
+            if uploaded_file:
+                with st.spinner("Analyzing..."):
+                    process_audio(uploaded_file)
+
+def process_audio_from_path(temp_file_path, file_ext, filename="audio"):
+    """Process audio from a file path (used for URL downloads)"""
+    try:
+        # Process with Gemini
+        response_text = process_with_gemini(temp_file_path, GEMINI_API_KEY)
+        
+        if response_text:
+            st.markdown('<div class="result-section">', unsafe_allow_html=True)
+            
+            # Extract timestamps
+            start_time, end_time = extract_timestamps_from_response(response_text)
+            
+            if start_time is not None and end_time is not None:
+                start_str = f"{int(start_time // 60)}:{int(start_time % 60):02d}"
+                end_str = f"{int(end_time // 60)}:{int(end_time % 60):02d}"
+                
+                st.markdown(f'<span class="timestamp-pill">{start_str} → {end_str}</span>', unsafe_allow_html=True)
+                
+                # Extract the hero moment audio
+                with tempfile.NamedTemporaryFile(suffix='.ogg', delete=False) as hero_file:
+                    hero_file_path = hero_file.name
+                
+                if extract_audio_segment(temp_file_path, start_time, end_time, hero_file_path):
+                    st.audio(hero_file_path, format='audio/ogg')
+                    
+                    with open(hero_file_path, 'rb') as f:
+                        st.download_button(
+                            label="Download clip",
+                            data=f,
+                            file_name=f"hero_moment.ogg",
+                            mime="audio/ogg"
+                        )
+                    
+                    os.unlink(hero_file_path)
+            
+            # Extract and display transcript
+            transcript = extract_transcript_from_response(response_text)
+            explanation = extract_explanation_from_response(response_text)
+            
+            if transcript and len(transcript) > 50:
+                st.markdown('<p class="section-label">The Clip</p>', unsafe_allow_html=True)
+                st.markdown(f'<div class="transcript-text">"{transcript}"</div>', unsafe_allow_html=True)
+                
+                if explanation:
+                    st.markdown('<p class="section-label">Why This Captures Their Vibe</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p class="explanation-text">{explanation}</p>', unsafe_allow_html=True)
+            else:
+                st.markdown('<p class="section-label">Analysis</p>', unsafe_allow_html=True)
+                st.markdown(f'<div class="explanation-text">{response_text}</div>', unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # Cleanup
+        os.unlink(temp_file_path)
+
+    except Exception as e:
+        st.error(f"Error: {str(e)}")
 
 def process_audio(uploaded_file):
     """Process the uploaded audio file"""
