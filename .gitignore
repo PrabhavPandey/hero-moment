@@ -1,0 +1,16 @@
+# Secrets
+.streamlit/secrets.toml
+
+# Audio files (too large for git)
+*.ogg
+*.mp3
+*.wav
+*.m4a
+
+# Python
+__pycache__/
+*.py[cod]
+.env
+
+# OS
+.DS_Store
