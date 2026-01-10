@@ -113,12 +113,21 @@ def parse_response(text):
 def extract_audio(input_path, start, end, output_path):
     """Extract audio segment using ffmpeg"""
     duration = end - start
-    cmd = ['ffmpeg', '-y', '-ss', str(start), '-i', input_path, '-t', str(duration), '-c:a', 'libvorbis', '-q:a', '4', output_path]
+    # Use MP3 output - more compatible, and -accurate_seek for OGG input
+    cmd = [
+        'ffmpeg', '-y',
+        '-accurate_seek',
+        '-ss', str(start),
+        '-i', input_path,
+        '-t', str(duration),
+        '-c:a', 'libmp3lame',
+        '-q:a', '2',
+        output_path
+    ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         st.error(f"ffmpeg failed: {result.stderr[:500]}")
         return False
-    # Check if file was created and has content
     if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
         st.error("ffmpeg produced empty file")
         return False
@@ -187,12 +196,11 @@ def main():
             if start is not None and end is not None:
                 st.markdown(f'<span class="timestamp-pill">{int(start//60)}:{int(start%60):02d} → {int(end//60)}:{int(end%60):02d}</span>', unsafe_allow_html=True)
                 
-                # Extract clip
-                with tempfile.NamedTemporaryFile(suffix='.ogg', delete=False) as f:
+                # Extract clip as MP3
+                with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
                     clip_path = f.name
                 
                 if extract_audio(audio_path, start, end, clip_path):
-                    # Read audio bytes before displaying (so file can be cleaned up)
                     with open(clip_path, 'rb') as f:
                         audio_bytes = f.read()
                     os.unlink(clip_path)
@@ -200,8 +208,8 @@ def main():
                     if result.get('context'):
                         st.markdown(f'<p class="context-text">{result["context"]}</p>', unsafe_allow_html=True)
                     
-                    st.audio(audio_bytes, format='audio/ogg')
-                    st.download_button("download clip", audio_bytes, f"hero_{uploaded.name}", "audio/ogg")
+                    st.audio(audio_bytes, format='audio/mp3')
+                    st.download_button("download clip", audio_bytes, "hero_clip.mp3", "audio/mp3")
             
             # Transcript
             if result.get('verbatim_snippet'):
