@@ -3,6 +3,7 @@ import os
 import tempfile
 import subprocess
 import json
+import requests
 import google.generativeai as genai
 
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
@@ -85,7 +86,6 @@ st.markdown("""
         background: #141415; color: #fafafa; border-color: #3a3a3b;
     }
     
-    /* Expander styling */
     .streamlit-expanderHeader {
         background: #141415; border-radius: 8px;
         color: #6b6b6b; font-size: 0.85rem;
@@ -93,6 +93,25 @@ st.markdown("""
     .streamlit-expanderContent {
         background: #141415; border-radius: 0 0 8px 8px;
     }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0; background: #141415; border-radius: 10px; padding: 4px; margin-bottom: 1rem;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background: transparent; color: #6b6b6b; border-radius: 8px;
+        padding: 0.5rem 1rem; font-size: 0.85rem;
+    }
+    .stTabs [aria-selected="true"] { background: #2a2a2b; color: #fafafa; }
+    .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display: none; }
+    
+    /* Text input */
+    .stTextInput > div > div > input {
+        background: #141415; border: 1px solid #2a2a2b; border-radius: 10px;
+        color: #fafafa; padding: 0.8rem 1rem; font-size: 0.9rem;
+    }
+    .stTextInput > div > div > input:focus { border-color: #3a3a3b; box-shadow: none; }
+    .stTextInput > div > div > input::placeholder { color: #4a4a4b; }
     
     #MainMenu, footer, header { visibility: hidden; }
     .stAlert { background: #1a1a1b; border: none; border-radius: 8px; }
@@ -119,6 +138,21 @@ def parse_response(text):
         except:
             pass
     return None
+
+
+def download_audio(url):
+    """Download audio from URL"""
+    try:
+        resp = requests.get(url, timeout=120, stream=True)
+        resp.raise_for_status()
+        ext = url.split('.')[-1].split('?')[0][:4] or 'ogg'
+        with tempfile.NamedTemporaryFile(suffix=f'.{ext}', delete=False) as f:
+            for chunk in resp.iter_content(chunk_size=8192):
+                f.write(chunk)
+            return f.name
+    except Exception as e:
+        st.error(f"download failed: {e}")
+        return None
 
 
 def extract_audio(input_path, start, end, output_path):
@@ -163,78 +197,96 @@ For vibe: be concise, lowercase, no fluff. what actually stands out about this p
     return response.text
 
 
+def process_audio(audio_path):
+    """Process audio file and display results"""
+    raw = analyze_interview(audio_path)
+    result = parse_response(raw)
+    
+    if not result:
+        st.error("failed to parse response")
+        os.unlink(audio_path)
+        return
+    
+    st.markdown('<div class="result-section">', unsafe_allow_html=True)
+    
+    start = result.get('start_time_seconds')
+    end = result.get('end_time_seconds')
+    
+    if start is not None and end is not None:
+        st.markdown(f'<span class="timestamp-pill">{int(start//60)}:{int(start%60):02d} → {int(end//60)}:{int(end%60):02d}</span>', unsafe_allow_html=True)
+        
+        # Context box
+        question = result.get('question', '')
+        summary = result.get('summary', '')
+        if question or summary:
+            st.markdown('<div class="context-box">', unsafe_allow_html=True)
+            if question:
+                st.markdown(f'<p class="context-label">question</p><p class="context-text">{question}</p>', unsafe_allow_html=True)
+            if summary:
+                st.markdown(f'<p class="context-label" style="margin-top: 0.8rem;">what they\'re saying</p><p class="context-text">{summary}</p>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Extract and play audio
+        with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
+            clip_path = f.name
+        
+        if extract_audio(audio_path, start, end, clip_path):
+            with open(clip_path, 'rb') as f:
+                audio_bytes = f.read()
+            os.unlink(clip_path)
+            
+            st.audio(audio_bytes, format='audio/mp3')
+            st.download_button("download clip", audio_bytes, "hero_clip.mp3", "audio/mp3")
+    
+    # Transcript (collapsible)
+    if result.get('verbatim_snippet'):
+        with st.expander("the clip (tap to read)"):
+            st.markdown(f'*"{result["verbatim_snippet"]}"*')
+    
+    # Vibe
+    vibe = result.get('vibe') or result.get('vibe_bullets')
+    if vibe:
+        st.markdown('<p class="section-label">what\'s their vibe</p>', unsafe_allow_html=True)
+        bullets = ''.join(f'<li>{b.lower()}</li>' for b in vibe)
+        st.markdown(f'<ul class="vibe-list">{bullets}</ul>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.balloons()
+    
+    os.unlink(audio_path)
+
+
 def main():
     if not GEMINI_API_KEY:
         st.error("set GEMINI_API_KEY in secrets")
         return
 
-    uploaded = st.file_uploader("upload", type=['ogg', 'oga', 'mp3', 'wav', 'm4a'], label_visibility="collapsed")
+    tab1, tab2 = st.tabs(["paste link", "upload file"])
     
-    if uploaded:
-        st.markdown(f"<p style='color: #6b6b6b; font-size: 0.85rem;'>📎 {uploaded.name}</p>", unsafe_allow_html=True)
-
-    if st.button("find hero moment", disabled=not uploaded):
-        with st.spinner("analyzing..."):
-            ext = uploaded.name.split('.')[-1].lower()
-            with tempfile.NamedTemporaryFile(suffix=f'.{ext}', delete=False) as f:
-                f.write(uploaded.getvalue())
-                audio_path = f.name
-            
-            raw = analyze_interview(audio_path)
-            result = parse_response(raw)
-            
-            if not result:
-                st.error("failed to parse response")
-                os.unlink(audio_path)
-                return
-            
-            st.markdown('<div class="result-section">', unsafe_allow_html=True)
-            
-            start = result.get('start_time_seconds')
-            end = result.get('end_time_seconds')
-            
-            if start is not None and end is not None:
-                st.markdown(f'<span class="timestamp-pill">{int(start//60)}:{int(start%60):02d} → {int(end//60)}:{int(end%60):02d}</span>', unsafe_allow_html=True)
-                
-                # Context box
-                question = result.get('question', '')
-                summary = result.get('summary', '')
-                if question or summary:
-                    st.markdown('<div class="context-box">', unsafe_allow_html=True)
-                    if question:
-                        st.markdown(f'<p class="context-label">question</p><p class="context-text">{question}</p>', unsafe_allow_html=True)
-                    if summary:
-                        st.markdown(f'<p class="context-label" style="margin-top: 0.8rem;">what they\'re saying</p><p class="context-text">{summary}</p>', unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-                
-                # Extract and play audio
-                with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
-                    clip_path = f.name
-                
-                if extract_audio(audio_path, start, end, clip_path):
-                    with open(clip_path, 'rb') as f:
-                        audio_bytes = f.read()
-                    os.unlink(clip_path)
-                    
-                    st.audio(audio_bytes, format='audio/mp3')
-                    st.download_button("download clip", audio_bytes, "hero_clip.mp3", "audio/mp3")
-            
-            # Transcript (collapsible)
-            if result.get('verbatim_snippet'):
-                with st.expander("the clip (tap to read)"):
-                    st.markdown(f'*"{result["verbatim_snippet"]}"*')
-            
-            # Vibe
-            vibe = result.get('vibe') or result.get('vibe_bullets')
-            if vibe:
-                st.markdown('<p class="section-label">what\'s their vibe</p>', unsafe_allow_html=True)
-                bullets = ''.join(f'<li>{b.lower()}</li>' for b in vibe)
-                st.markdown(f'<ul class="vibe-list">{bullets}</ul>', unsafe_allow_html=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-            st.balloons()
-            
-            os.unlink(audio_path)
+    with tab1:
+        url = st.text_input("audio url", placeholder="https://...ogg", label_visibility="collapsed")
+        if url:
+            st.markdown(f"<p style='color: #6b6b6b; font-size: 0.85rem;'>🔗 {url[:50]}...</p>", unsafe_allow_html=True)
+        
+        if st.button("find hero moment", key="url_btn", disabled=not url):
+            with st.spinner("downloading..."):
+                audio_path = download_audio(url)
+            if audio_path:
+                with st.spinner("analyzing..."):
+                    process_audio(audio_path)
+    
+    with tab2:
+        uploaded = st.file_uploader("upload", type=['ogg', 'oga', 'mp3', 'wav', 'm4a'], label_visibility="collapsed")
+        if uploaded:
+            st.markdown(f"<p style='color: #6b6b6b; font-size: 0.85rem;'>📎 {uploaded.name}</p>", unsafe_allow_html=True)
+        
+        if st.button("find hero moment", key="upload_btn", disabled=not uploaded):
+            with st.spinner("analyzing..."):
+                ext = uploaded.name.split('.')[-1].lower()
+                with tempfile.NamedTemporaryFile(suffix=f'.{ext}', delete=False) as f:
+                    f.write(uploaded.getvalue())
+                    audio_path = f.name
+                process_audio(audio_path)
 
 
 if __name__ == "__main__":
