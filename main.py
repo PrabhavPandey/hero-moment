@@ -197,7 +197,13 @@ def analyze_interview(audio_path, progress_container):
     
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """You're a hiring manager. Find the ~45 second clip that would most convince you to hire this person.
+    prompt = """You're a hiring manager. Find the ~45 second clip that reveals WHO this person really is.
+
+PRIORITY ORDER (use first match):
+1. VIBE FIRST: Find where they talk about WHY — their passion for this role, what drives them, their motivation, what excites them, why they want to work here, what makes them tick. This is the gold.
+2. ONLY IF NO VIBE EXISTS: Fall back to hard skills — problem-solving, technical abilities, projects they built.
+
+I want to hear their energy, their fire, their "why" — not just what they did.
 
 Return JSON only:
 {
@@ -209,7 +215,7 @@ Return JSON only:
   "vibe": ["punchy insight", "another insight", "third insight"]
 }
 
-Keep question short (2 lines max). Context should be 3 brief bullets. Vibe: lowercase, no fluff."""
+Keep question short (2 lines max). Context should be 3 brief bullets. Vibe: lowercase, capture what makes this person unique."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
