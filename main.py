@@ -112,8 +112,17 @@ def parse_response(text):
 
 def extract_audio(input_path, start, end, output_path):
     """Extract audio segment using ffmpeg"""
-    cmd = ['ffmpeg', '-y', '-i', input_path, '-ss', str(start), '-t', str(end - start), '-c:a', 'libvorbis', '-q:a', '4', output_path]
-    return subprocess.run(cmd, capture_output=True).returncode == 0
+    duration = end - start
+    cmd = ['ffmpeg', '-y', '-ss', str(start), '-i', input_path, '-t', str(duration), '-c:a', 'libvorbis', '-q:a', '4', output_path]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        st.error(f"ffmpeg failed: {result.stderr[:500]}")
+        return False
+    # Check if file was created and has content
+    if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+        st.error("ffmpeg produced empty file")
+        return False
+    return True
 
 
 def analyze_interview(audio_path):
