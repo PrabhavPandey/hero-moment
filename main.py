@@ -256,26 +256,45 @@ def process_audio(audio_path):
     os.unlink(audio_path)
 
 
+def is_valid_audio_url(url):
+    """Check if URL looks like an audio file"""
+    if not url:
+        return False
+    url_lower = url.lower()
+    return url_lower.startswith('http') and any(ext in url_lower for ext in ['.ogg', '.mp3', '.wav', '.m4a'])
+
+
 def main():
     if not GEMINI_API_KEY:
         st.error("set GEMINI_API_KEY in secrets")
         return
+    
+    # Initialize session state
+    if 'processed_url' not in st.session_state:
+        st.session_state.processed_url = None
+    if 'result' not in st.session_state:
+        st.session_state.result = None
 
     tab1, tab2 = st.tabs(["paste link", "upload file"])
     
     with tab1:
         st.markdown("<p style='color: #6b6b6b; font-size: 0.9rem; margin-bottom: 0.5rem;'>drop any round1 audio file link below</p>", unsafe_allow_html=True)
-        url = st.text_input("audio url", placeholder="https://...ogg", label_visibility="collapsed")
+        url = st.text_input("audio url", placeholder="https://...ogg", label_visibility="collapsed", key="url_input")
         
-        if st.button("find hero moment", key="url_btn", disabled=not url):
+        # Auto-process when valid URL is pasted (and not already processed)
+        if is_valid_audio_url(url) and url != st.session_state.processed_url:
             with st.status("processing...", expanded=True) as status:
                 st.write("⬇️ downloading audio...")
                 audio_path = download_audio(url)
                 if audio_path:
                     st.write("✓ downloaded")
                     st.write("🔍 analyzing with gemini...")
-                    process_audio(audio_path)
                     status.update(label="done!", state="complete", expanded=False)
+            
+            # Process OUTSIDE status so results persist
+            if audio_path:
+                process_audio(audio_path)
+                st.session_state.processed_url = url
     
     with tab2:
         uploaded = st.file_uploader("upload", type=['ogg', 'oga', 'mp3', 'wav', 'm4a'], label_visibility="collapsed")
@@ -285,12 +304,13 @@ def main():
         if st.button("find hero moment", key="upload_btn", disabled=not uploaded):
             with st.status("processing...", expanded=True) as status:
                 st.write("🔍 analyzing with gemini...")
-                ext = uploaded.name.split('.')[-1].lower()
-                with tempfile.NamedTemporaryFile(suffix=f'.{ext}', delete=False) as f:
-                    f.write(uploaded.getvalue())
-                    audio_path = f.name
-                process_audio(audio_path)
                 status.update(label="done!", state="complete", expanded=False)
+            
+            ext = uploaded.name.split('.')[-1].lower()
+            with tempfile.NamedTemporaryFile(suffix=f'.{ext}', delete=False) as f:
+                f.write(uploaded.getvalue())
+                audio_path = f.name
+            process_audio(audio_path)
 
 
 if __name__ == "__main__":
