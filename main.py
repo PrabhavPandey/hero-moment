@@ -258,54 +258,35 @@ def fallback_parse_response(response_text):
     result = {
         'start_time_seconds': None,
         'end_time_seconds': None,
-        'reason': None,
+        'context': None,
         'verbatim_snippet': None,
-        'summary': None
+        'vibe_bullets': None
     }
     
-    # Try to extract timestamps - multiple patterns
-    patterns = [
-        r'"start_time_seconds"\s*:\s*(\d+(?:\.\d+)?)',  # JSON-style
-        r'"end_time_seconds"\s*:\s*(\d+(?:\.\d+)?)',
-        r'(\d{1,2}:\d{2})\s*[-–to]+\s*(\d{1,2}:\d{2})',
-        r'from\s*(\d{1,2}:\d{2})\s*to\s*(\d{1,2}:\d{2})',
-    ]
-    
-    # Try JSON-style first
+    # Try JSON-style extraction for each field
     start_match = re.search(r'"start_time_seconds"\s*:\s*(\d+(?:\.\d+)?)', response_text)
     end_match = re.search(r'"end_time_seconds"\s*:\s*(\d+(?:\.\d+)?)', response_text)
     if start_match and end_match:
         result['start_time_seconds'] = float(start_match.group(1))
         result['end_time_seconds'] = float(end_match.group(1))
-    else:
-        # Try MM:SS format
-        for pattern in patterns[2:]:
-            matches = re.findall(pattern, response_text, re.IGNORECASE)
-            if matches:
-                parts = matches[0][0].split(':')
-                result['start_time_seconds'] = int(parts[0]) * 60 + int(parts[1])
-                parts = matches[0][1].split(':')
-                result['end_time_seconds'] = int(parts[0]) * 60 + int(parts[1])
-                break
     
-    # Extract transcript from quotes
-    quote_matches = re.findall(r'"([^"]{30,})"', response_text)
-    if quote_matches:
-        result['verbatim_snippet'] = max(quote_matches, key=len)
+    # Extract verbatim_snippet specifically (not just any quote)
+    snippet_match = re.search(r'"verbatim_snippet"\s*:\s*"([^"]+)"', response_text)
+    if snippet_match:
+        result['verbatim_snippet'] = snippet_match.group(1)
     
-    # Extract reason
-    reason_match = re.search(r'"reason"\s*:\s*"([^"]+)"', response_text)
-    if reason_match:
-        result['reason'] = reason_match.group(1)
-    else:
-        why_match = re.search(r'[Ww]hy[^:]*:?\s*\n*(.+?)(?:\n\n|\Z)', response_text, re.DOTALL)
-        if why_match:
-            result['reason'] = why_match.group(1).strip()[:500]
+    # Extract context
+    context_match = re.search(r'"context"\s*:\s*"([^"]+)"', response_text)
+    if context_match:
+        result['context'] = context_match.group(1)
     
-    # Extract summary
-    summary_match = re.search(r'"summary"\s*:\s*"([^"]+)"', response_text)
-    if summary_match:
-        result['summary'] = summary_match.group(1)
+    # Extract vibe_bullets array
+    bullets_match = re.search(r'"vibe_bullets"\s*:\s*\[(.*?)\]', response_text, re.DOTALL)
+    if bullets_match:
+        bullets_str = bullets_match.group(1)
+        bullets = re.findall(r'"([^"]+)"', bullets_str)
+        if bullets:
+            result['vibe_bullets'] = bullets
     
     return result
 
@@ -400,9 +381,14 @@ def process_audio(uploaded_file):
         response_text = process_with_gemini(temp_file_path, GEMINI_API_KEY)
         
         if response_text:
+            # Debug: show raw response in expander
+            with st.expander("debug: raw response"):
+                st.code(response_text)
+            
             # Try JSON parsing first, fallback to regex
             result = parse_json_response(response_text)
             if not result:
+                st.warning("JSON parsing failed, using fallback")
                 result = fallback_parse_response(response_text)
             
             # Normalize timestamps to ensure they're numeric
