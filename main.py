@@ -120,17 +120,17 @@ def analyze_interview(audio_path):
     """Send audio to Gemini and get hero moment"""
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """Find the best 30-45 second clip from this interview that shows who this person really is.
+    prompt = """You're a hiring manager. Find the ~45 second clip from this interview that would most convince you to hire this person.
 
-Look for: ownership, impact, passion, clarity, real examples.
+What clip best shows their vibe — their passion, how they think, and whether they'd be hungry to solve your problems?
 
 Return JSON only:
 {
   "start_time_seconds": number,
   "end_time_seconds": number,
-  "context": "what question/topic they're responding to",
+  "context": "what they're responding to (so a listener has context)",
   "verbatim_snippet": "exact words spoken",
-  "vibe_bullets": ["insight 1", "insight 2", "insight 3"]
+  "vibe_bullets": ["what stands out 1", "what stands out 2", "what stands out 3"]
 }"""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
