@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 import tempfile
-import re
 import subprocess
 import json
 import google.generativeai as genai
@@ -49,29 +48,34 @@ st.markdown("""
     .timestamp-pill {
         display: inline-block; background: #1a1a1b; color: #fafafa;
         padding: 0.4rem 0.9rem; border-radius: 100px; font-size: 0.85rem;
-        font-weight: 500; font-family: 'SF Mono', monospace; margin-bottom: 1.2rem;
+        font-weight: 500; font-family: 'SF Mono', monospace; margin-bottom: 1rem;
+    }
+    
+    .context-box {
+        background: #141415; border-radius: 10px; padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .context-label {
+        color: #4a4a4a; font-size: 0.7rem; font-weight: 500;
+        text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;
     }
     .context-text {
-        color: #6b6b6b; font-size: 0.85rem; font-style: italic;
-        margin-bottom: 0.5rem; padding-left: 0.2rem;
+        color: #8a8a8a; font-size: 0.85rem; line-height: 1.5;
     }
+    
     .section-label {
         color: #6b6b6b; font-size: 0.75rem; font-weight: 500;
         letter-spacing: 0.05em; margin-bottom: 0.8rem;
     }
-    .transcript-text {
-        background: #141415; border-radius: 10px; padding: 1.2rem;
-        color: #d4d4d4; font-size: 0.95rem; line-height: 1.7;
-        font-style: italic; margin-bottom: 1.5rem;
-    }
+    
     .vibe-list { list-style: none; padding: 0; margin: 0; }
     .vibe-list li {
-        color: #a0a0a0; font-size: 0.9rem; line-height: 1.6;
-        padding-left: 1.2rem; position: relative; margin-bottom: 0.5rem;
+        color: #d0d0d0; font-size: 1.05rem; line-height: 1.7;
+        padding-left: 1.4rem; position: relative; margin-bottom: 0.6rem;
     }
-    .vibe-list li::before { content: "→"; position: absolute; left: 0; color: #4a4a4a; }
+    .vibe-list li::before { content: "→"; position: absolute; left: 0; color: #5a5a5a; }
     
-    audio { width: 100%; border-radius: 8px; margin: 1rem 0; }
+    audio { width: 100%; border-radius: 8px; margin: 0.5rem 0 1rem 0; }
     
     .stDownloadButton > button {
         background: transparent; color: #6b6b6b;
@@ -79,6 +83,15 @@ st.markdown("""
     }
     .stDownloadButton > button:hover {
         background: #141415; color: #fafafa; border-color: #3a3a3b;
+    }
+    
+    /* Expander styling */
+    .streamlit-expanderHeader {
+        background: #141415; border-radius: 8px;
+        color: #6b6b6b; font-size: 0.85rem;
+    }
+    .streamlit-expanderContent {
+        background: #141415; border-radius: 0 0 8px 8px;
     }
     
     #MainMenu, footer, header { visibility: hidden; }
@@ -93,14 +106,12 @@ st.markdown('<p class="hero-subtitle">find the most compelling 30 seconds from a
 def parse_response(text):
     """Parse JSON from Gemini response"""
     try:
-        # Strip markdown code blocks
         if '```json' in text:
             text = text.split('```json')[1].split('```')[0]
         elif '```' in text:
             text = text.split('```')[1].split('```')[0]
         return json.loads(text.strip())
     except:
-        # Fallback: find JSON object
         try:
             start, end = text.find('{'), text.rfind('}')
             if start != -1 and end > start:
@@ -112,16 +123,11 @@ def parse_response(text):
 
 def extract_audio(input_path, start, end, output_path):
     """Extract audio segment using ffmpeg"""
-    duration = end - start
-    # Use MP3 output - more compatible, and -accurate_seek for OGG input
     cmd = [
-        'ffmpeg', '-y',
-        '-accurate_seek',
-        '-ss', str(start),
-        '-i', input_path,
-        '-t', str(duration),
-        '-c:a', 'libmp3lame',
-        '-q:a', '2',
+        'ffmpeg', '-y', '-accurate_seek',
+        '-ss', str(start), '-i', input_path,
+        '-t', str(end - start),
+        '-c:a', 'libmp3lame', '-q:a', '2',
         output_path
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -138,18 +144,19 @@ def analyze_interview(audio_path):
     """Send audio to Gemini and get hero moment"""
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """You're a hiring manager. Find the ~45 second clip from this interview that would most convince you to hire this person.
-
-What clip best shows their vibe — their passion, how they think, and whether they'd be hungry to solve your problems?
+    prompt = """You're a hiring manager. Find the ~45 second clip that would most convince you to hire this person.
 
 Return JSON only:
 {
   "start_time_seconds": number,
   "end_time_seconds": number,
-  "context": "what they're responding to (so a listener has context)",
+  "question": "the interviewer's question that prompted this answer",
+  "summary": "one line: what the candidate is talking about",
   "verbatim_snippet": "exact words spoken",
-  "vibe_bullets": ["what stands out 1", "what stands out 2", "what stands out 3"]
-}"""
+  "vibe": ["short punchy insight", "another insight", "third insight"]
+}
+
+For vibe: be concise, lowercase, no fluff. what actually stands out about this person."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
@@ -168,26 +175,19 @@ def main():
 
     if st.button("find hero moment", disabled=not uploaded):
         with st.spinner("analyzing..."):
-            # Save uploaded file
             ext = uploaded.name.split('.')[-1].lower()
             with tempfile.NamedTemporaryFile(suffix=f'.{ext}', delete=False) as f:
                 f.write(uploaded.getvalue())
                 audio_path = f.name
             
-            # Get analysis
             raw = analyze_interview(audio_path)
-            
-            # Debug
-            with st.expander("debug"):
-                st.code(raw)
-            
             result = parse_response(raw)
+            
             if not result:
                 st.error("failed to parse response")
                 os.unlink(audio_path)
                 return
             
-            # Display results
             st.markdown('<div class="result-section">', unsafe_allow_html=True)
             
             start = result.get('start_time_seconds')
@@ -196,7 +196,18 @@ def main():
             if start is not None and end is not None:
                 st.markdown(f'<span class="timestamp-pill">{int(start//60)}:{int(start%60):02d} → {int(end//60)}:{int(end%60):02d}</span>', unsafe_allow_html=True)
                 
-                # Extract clip as MP3
+                # Context box
+                question = result.get('question', '')
+                summary = result.get('summary', '')
+                if question or summary:
+                    st.markdown('<div class="context-box">', unsafe_allow_html=True)
+                    if question:
+                        st.markdown(f'<p class="context-label">question</p><p class="context-text">{question}</p>', unsafe_allow_html=True)
+                    if summary:
+                        st.markdown(f'<p class="context-label" style="margin-top: 0.8rem;">what they\'re saying</p><p class="context-text">{summary}</p>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Extract and play audio
                 with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
                     clip_path = f.name
                 
@@ -205,21 +216,19 @@ def main():
                         audio_bytes = f.read()
                     os.unlink(clip_path)
                     
-                    if result.get('context'):
-                        st.markdown(f'<p class="context-text">{result["context"]}</p>', unsafe_allow_html=True)
-                    
                     st.audio(audio_bytes, format='audio/mp3')
                     st.download_button("download clip", audio_bytes, "hero_clip.mp3", "audio/mp3")
             
-            # Transcript
+            # Transcript (collapsible)
             if result.get('verbatim_snippet'):
-                st.markdown('<p class="section-label">the clip</p>', unsafe_allow_html=True)
-                st.markdown(f'<div class="transcript-text">"{result["verbatim_snippet"]}"</div>', unsafe_allow_html=True)
+                with st.expander("the clip (tap to read)"):
+                    st.markdown(f'*"{result["verbatim_snippet"]}"*')
             
             # Vibe
-            if result.get('vibe_bullets'):
+            vibe = result.get('vibe') or result.get('vibe_bullets')
+            if vibe:
                 st.markdown('<p class="section-label">what\'s their vibe</p>', unsafe_allow_html=True)
-                bullets = ''.join(f'<li>{b}</li>' for b in result['vibe_bullets'])
+                bullets = ''.join(f'<li>{b.lower()}</li>' for b in vibe)
                 st.markdown(f'<ul class="vibe-list">{bullets}</ul>', unsafe_allow_html=True)
             
             st.markdown('</div>', unsafe_allow_html=True)
