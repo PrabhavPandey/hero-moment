@@ -61,7 +61,17 @@ st.markdown("""
         text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;
     }
     .context-text {
+        color: #8a8a8a; font-size: 0.85rem; line-height: 1.4;
+    }
+    .context-list {
+        list-style: none; padding: 0; margin: 0.3rem 0 0 0;
+    }
+    .context-list li {
         color: #8a8a8a; font-size: 0.85rem; line-height: 1.5;
+        padding-left: 1rem; position: relative; margin-bottom: 0.2rem;
+    }
+    .context-list li::before {
+        content: "•"; position: absolute; left: 0; color: #5a5a5a;
     }
     
     .section-label {
@@ -75,6 +85,11 @@ st.markdown("""
         padding-left: 1.4rem; position: relative; margin-bottom: 0.6rem;
     }
     .vibe-list li::before { content: "→"; position: absolute; left: 0; color: #5a5a5a; }
+    
+    .progress-step {
+        color: #6b6b6b; font-size: 0.85rem; padding: 0.3rem 0;
+    }
+    .progress-step.done { color: #4ade80; }
     
     audio { width: 100%; border-radius: 8px; margin: 0.5rem 0 1rem 0; }
     
@@ -140,15 +155,17 @@ def parse_response(text):
     return None
 
 
-def download_audio(url):
+def download_audio(url, progress_container):
     """Download audio from URL"""
     try:
+        progress_container.markdown('<p class="progress-step">⬇️ downloading audio...</p>', unsafe_allow_html=True)
         resp = requests.get(url, timeout=120, stream=True)
         resp.raise_for_status()
         ext = url.split('.')[-1].split('?')[0][:4] or 'ogg'
         with tempfile.NamedTemporaryFile(suffix=f'.{ext}', delete=False) as f:
             for chunk in resp.iter_content(chunk_size=8192):
                 f.write(chunk)
+            progress_container.markdown('<p class="progress-step done">✓ downloaded</p>', unsafe_allow_html=True)
             return f.name
     except Exception as e:
         st.error(f"download failed: {e}")
@@ -174,8 +191,10 @@ def extract_audio(input_path, start, end, output_path):
     return True
 
 
-def analyze_interview(audio_path):
+def analyze_interview(audio_path, progress_container):
     """Send audio to Gemini and get hero moment"""
+    progress_container.markdown('<p class="progress-step">🔍 analyzing with gemini...</p>', unsafe_allow_html=True)
+    
     genai.configure(api_key=GEMINI_API_KEY)
     
     prompt = """You're a hiring manager. Find the ~45 second clip that would most convince you to hire this person.
@@ -184,28 +203,33 @@ Return JSON only:
 {
   "start_time_seconds": number,
   "end_time_seconds": number,
-  "question": "the interviewer's question that prompted this answer",
-  "summary": "one line: what the candidate is talking about",
+  "question": "short version of interviewer's question (max 2 lines)",
+  "context": ["which company/role this was at", "what specific thing they're explaining", "key detail that helps understand the clip"],
   "verbatim_snippet": "exact words spoken",
-  "vibe": ["short punchy insight", "another insight", "third insight"]
+  "vibe": ["punchy insight", "another insight", "third insight"]
 }
 
-For vibe: be concise, lowercase, no fluff. what actually stands out about this person."""
+Keep question short (2 lines max). Context should be 3 brief bullets. Vibe: lowercase, no fluff."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
+    
+    progress_container.markdown('<p class="progress-step done">✓ analysis complete</p>', unsafe_allow_html=True)
     return response.text
 
 
-def process_audio(audio_path):
+def process_audio(audio_path, progress_container):
     """Process audio file and display results"""
-    raw = analyze_interview(audio_path)
+    raw = analyze_interview(audio_path, progress_container)
     result = parse_response(raw)
     
     if not result:
         st.error("failed to parse response")
         os.unlink(audio_path)
         return
+    
+    # Clear progress
+    progress_container.empty()
     
     st.markdown('<div class="result-section">', unsafe_allow_html=True)
     
@@ -217,14 +241,16 @@ def process_audio(audio_path):
         
         # Context box
         question = result.get('question', '')
-        summary = result.get('summary', '')
-        if question or summary:
-            st.markdown('<div class="context-box">', unsafe_allow_html=True)
-            if question:
-                st.markdown(f'<p class="context-label">question</p><p class="context-text">{question}</p>', unsafe_allow_html=True)
-            if summary:
-                st.markdown(f'<p class="context-label" style="margin-top: 0.8rem;">what they\'re saying</p><p class="context-text">{summary}</p>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+        context = result.get('context', [])
+        
+        st.markdown('<div class="context-box">', unsafe_allow_html=True)
+        if question:
+            st.markdown(f'<p class="context-label">question</p><p class="context-text">{question}</p>', unsafe_allow_html=True)
+        if context:
+            st.markdown('<p class="context-label" style="margin-top: 0.8rem;">context</p>', unsafe_allow_html=True)
+            bullets = ''.join(f'<li>{c}</li>' for c in context)
+            st.markdown(f'<ul class="context-list">{bullets}</ul>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
         
         # Extract and play audio
         with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
@@ -240,7 +266,7 @@ def process_audio(audio_path):
     
     # Transcript (collapsible)
     if result.get('verbatim_snippet'):
-        with st.expander("the clip (tap to read)"):
+        with st.expander("the clip's verbatim (tap to read)"):
             st.markdown(f'*"{result["verbatim_snippet"]}"*')
     
     # Vibe
@@ -272,8 +298,6 @@ def main():
     # Initialize session state
     if 'processed_url' not in st.session_state:
         st.session_state.processed_url = None
-    if 'result' not in st.session_state:
-        st.session_state.result = None
 
     tab1, tab2 = st.tabs(["paste link", "upload file"])
     
@@ -281,19 +305,12 @@ def main():
         st.markdown("<p style='color: #6b6b6b; font-size: 0.9rem; margin-bottom: 0.5rem;'>drop any round1 audio file link below</p>", unsafe_allow_html=True)
         url = st.text_input("audio url", placeholder="https://...ogg", label_visibility="collapsed", key="url_input")
         
-        # Auto-process when valid URL is pasted (and not already processed)
+        # Auto-process when valid URL is pasted
         if is_valid_audio_url(url) and url != st.session_state.processed_url:
-            with st.status("processing...", expanded=True) as status:
-                st.write("⬇️ downloading audio...")
-                audio_path = download_audio(url)
-                if audio_path:
-                    st.write("✓ downloaded")
-                    st.write("🔍 analyzing with gemini...")
-                    status.update(label="done!", state="complete", expanded=False)
-            
-            # Process OUTSIDE status so results persist
+            progress = st.container()
+            audio_path = download_audio(url, progress)
             if audio_path:
-                process_audio(audio_path)
+                process_audio(audio_path, progress)
                 st.session_state.processed_url = url
     
     with tab2:
@@ -302,15 +319,14 @@ def main():
             st.markdown(f"<p style='color: #6b6b6b; font-size: 0.85rem;'>📎 {uploaded.name}</p>", unsafe_allow_html=True)
         
         if st.button("find hero moment", key="upload_btn", disabled=not uploaded):
-            with st.status("processing...", expanded=True) as status:
-                st.write("🔍 analyzing with gemini...")
-                status.update(label="done!", state="complete", expanded=False)
+            progress = st.container()
+            progress.markdown('<p class="progress-step">🔍 analyzing...</p>', unsafe_allow_html=True)
             
             ext = uploaded.name.split('.')[-1].lower()
             with tempfile.NamedTemporaryFile(suffix=f'.{ext}', delete=False) as f:
                 f.write(uploaded.getvalue())
                 audio_path = f.name
-            process_audio(audio_path)
+            process_audio(audio_path, progress)
 
 
 if __name__ == "__main__":
