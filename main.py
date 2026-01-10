@@ -192,15 +192,16 @@ def main():
                     clip_path = f.name
                 
                 if extract_audio(audio_path, start, end, clip_path):
+                    # Read audio bytes before displaying (so file can be cleaned up)
+                    with open(clip_path, 'rb') as f:
+                        audio_bytes = f.read()
+                    os.unlink(clip_path)
+                    
                     if result.get('context'):
                         st.markdown(f'<p class="context-text">{result["context"]}</p>', unsafe_allow_html=True)
                     
-                    st.audio(clip_path, format='audio/ogg')
-                    
-                    with open(clip_path, 'rb') as f:
-                        st.download_button("download clip", f, f"hero_{uploaded.name}", "audio/ogg")
-                    
-                    os.unlink(clip_path)
+                    st.audio(audio_bytes, format='audio/ogg')
+                    st.download_button("download clip", audio_bytes, f"hero_{uploaded.name}", "audio/ogg")
             
             # Transcript
             if result.get('verbatim_snippet'):
