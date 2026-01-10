@@ -99,6 +99,14 @@ st.markdown("""
         margin-bottom: 1.2rem;
     }
     
+    .context-text {
+        color: #6b6b6b;
+        font-size: 0.85rem;
+        font-style: italic;
+        margin-bottom: 0.5rem;
+        padding-left: 0.2rem;
+    }
+    
     .section-label {
         color: #6b6b6b;
         font-size: 0.75rem;
@@ -329,39 +337,25 @@ def process_with_gemini(audio_path, api_key):
         
         prompt = """Find the single best "hero moment" (30–45 seconds) from this interview.
 
-CRITICAL: The clip must be COMPLETELY STANDALONE. Someone listening with ZERO context should:
-- Immediately understand what the person is talking about
-- Not feel like they're jumping into the middle of a story
-- Get the full picture: what they built/did, why it mattered, what happened
-
-The clip MUST start at a natural beginning — where the candidate sets up their own context. 
-Look for moments that START with phrases like:
-- "I built...", "So I created...", "One thing I did was...", "At [company], I..."
-- "I've always loved...", "What excites me is...", "The reason I..."
-
-AVOID clips that:
-- Start mid-sentence or mid-thought
-- Reference something said earlier ("So yeah, that project..." or "And then...")  
-- Require knowing the interviewer's question to make sense
-- Jump into details without setup
-
 Find moments where the candidate:
 - Shows ownership (built something, led a project, took initiative)
 - Demonstrates impact (real numbers, outcomes, growth)
 - Reveals their vibe: energy, clarity, storytelling, passion
+
+Prefer concrete examples over vague claims. Only include the CANDIDATE speaking.
 
 Return in JSON format:
 {
   "start_time_seconds": <number>,
   "end_time_seconds": <number>,
   "verbatim_snippet": "<exact transcript>",
+  "context": "<1-2 sentences explaining what question was asked or what topic the candidate is responding to — so a listener understands what they're about to hear>",
   "vibe_bullets": ["<punchy bullet 1>", "<punchy bullet 2>", "<punchy bullet 3>"]
 }
 
 Constraints:
 - Duration: 30-45 seconds
-- Only the CANDIDATE speaking (no interviewer)
-- Must be self-contained and understandable without any context"""
+- Only the CANDIDATE speaking (no interviewer)"""
 
         model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content([audio_file, prompt])
@@ -429,6 +423,11 @@ def process_audio(uploaded_file):
                     hero_file_path = hero_file.name
                 
                 if extract_audio_segment(temp_file_path, start_time, end_time, hero_file_path):
+                    # Display context first (so listener knows what they're about to hear)
+                    context = result.get('context')
+                    if context:
+                        st.markdown(f'<p class="context-text">{context}</p>', unsafe_allow_html=True)
+                    
                     st.audio(hero_file_path, format='audio/ogg')
                     
                     with open(hero_file_path, 'rb') as f:
