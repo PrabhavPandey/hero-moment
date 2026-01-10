@@ -327,38 +327,41 @@ def process_with_gemini(audio_path, api_key):
         
         audio_file = genai.upload_file(audio_path)
         
-        prompt = """You are an assistant helping a recruiter extract the single best "hero moment" clip (30–45 seconds) from an interview audio file.
-Your goal is to find the most compelling segment that best represents the candidate's vibe, capability, and fit for the role
+        prompt = """Find the single best "hero moment" (30–45 seconds) from this interview.
 
-Analyze the interview and identify moments where the candidate:
-- Shows clear ownership (built something end-to-end, led a project, took initiative)
-- Demonstrates impact (metrics, outcomes, growth, conversions, engagement)
-- Reveals strong vibe: energy, clarity of thought, storytelling, and self-awareness
+CRITICAL: The clip must be COMPLETELY STANDALONE. Someone listening with ZERO context should:
+- Immediately understand what the person is talking about
+- Not feel like they're jumping into the middle of a story
+- Get the full picture: what they built/did, why it mattered, what happened
 
-Ignore filler small talk, logistics, and very generic answers.
+The clip MUST start at a natural beginning — where the candidate sets up their own context. 
+Look for moments that START with phrases like:
+- "I built...", "So I created...", "One thing I did was...", "At [company], I..."
+- "I've always loved...", "What excites me is...", "The reason I..."
 
-Select ONE hero moment (30–45 seconds) — the single most powerful continuous segment (no stitching) that:
-- A hiring manager could listen to and immediately "get" the candidate
-- Contains a complete mini-arc: context → what they did → outcome/learning
+AVOID clips that:
+- Start mid-sentence or mid-thought
+- Reference something said earlier ("So yeah, that project..." or "And then...")  
+- Require knowing the interviewer's question to make sense
+- Jump into details without setup
 
-Prefer:
-- Concrete examples over vague claims
-- Moments where the candidate sounds confident and authentic
+Find moments where the candidate:
+- Shows ownership (built something, led a project, took initiative)
+- Demonstrates impact (real numbers, outcomes, growth)
+- Reveals their vibe: energy, clarity, storytelling, passion
 
 Return in JSON format:
 {
   "start_time_seconds": <number>,
   "end_time_seconds": <number>,
-  "verbatim_snippet": "<exact transcript of the 30-45 second segment>",
-  "vibe_bullets": ["<clear, punchy bullet 1>", "<clear, punchy bullet 2>", "<clear, punchy bullet 3>"]
+  "verbatim_snippet": "<exact transcript>",
+  "vibe_bullets": ["<punchy bullet 1>", "<punchy bullet 2>", "<punchy bullet 3>"]
 }
 
 Constraints:
-- start_time_seconds and end_time_seconds must be numerical (in seconds)
-- Duration must be 30-45 seconds
-- verbatim_snippet must match exactly what is said
-- Choose only ONE hero moment
-- Only include the CANDIDATE speaking, no interviewer"""
+- Duration: 30-45 seconds
+- Only the CANDIDATE speaking (no interviewer)
+- Must be self-contained and understandable without any context"""
 
         model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content([audio_file, prompt])
