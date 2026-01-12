@@ -133,9 +133,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<h1 class="hero-title">✦ hero moment</h1>', unsafe_allow_html=True)
-st.markdown('<p class="hero-subtitle">find the most compelling 30 seconds from any interview</p>', unsafe_allow_html=True)
-
+st.markdown('<h1 class="hero-title">✦ vibe check</h1>', unsafe_allow_html=True)
+st.markdown('<p class="hero-subtitle">find the most compelling 45 seconds from any Round1 audio</p>', unsafe_allow_html=True)
 
 def parse_response(text):
     """Parse JSON from Gemini response"""
