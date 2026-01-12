@@ -313,7 +313,10 @@ def is_valid_audio_url(url):
     if not url:
         return False
     url_lower = url.lower()
-    return url_lower.startswith('http') and any(ext in url_lower for ext in ['.ogg', '.mp3', '.wav', '.m4a'])
+    # Check for audio extensions OR known audio hosting patterns (like Azure blob with ai-interviews)
+    has_audio_ext = any(ext in url_lower for ext in ['.ogg', '.mp3', '.wav', '.m4a', '.oga'])
+    is_known_audio_host = 'ai-interviews' in url_lower or 'audio' in url_lower
+    return url_lower.startswith('http') and (has_audio_ext or is_known_audio_host)
 
 
 def main():
