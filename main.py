@@ -227,7 +227,7 @@ Return JSON only:
 
 Keep question short. Context = 3 brief bullets for the clip.
 
-VIBE = based on the ENTIRE interview (not just the clip). Be informal, brutally honest, yet directional. Like you're texting your friend: "here's the real deal on this person". Lowercase, no fluff."""
+VIBE = based on the ENTIRE interview (not just the clip). Be informal, brutally honest, yet directional. Like you're texting your friend: "here's the real deal on this person", include things that might not be so great about them them. Lowercase, no fluff."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
