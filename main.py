@@ -199,20 +199,26 @@ def analyze_interview(audio_path, progress_container):
     
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """Listen to this interview and pick the single best ~45 second clip that shows the candidate at their most impressive — the moment that would make any hiring manager say "I need to meet this person."
+    prompt = """Listen to this interview carefully. Your task is to find the single best ~45 second clip of the CANDIDATE (not interviewer) speaking.
 
-STRICT GUARDRAILS:
-1. The clip must START and END with the candidate speaking. Never include the interviewer's voice.
-2. CRITICAL: start_time_seconds and end_time_seconds must EXACTLY match the verbatim_snippet. The audio between those timestamps should contain precisely those words, nothing more, nothing less.
+STEP 1: Identify the best moment where the candidate sounds most impressive
+STEP 2: Note the EXACT second when the candidate STARTS speaking that segment (not when the interviewer finishes)
+STEP 3: Note the EXACT second when the candidate STOPS speaking that segment
+STEP 4: Transcribe EXACTLY what is said between those two timestamps
+
+CRITICAL RULES:
+- The clip must contain ONLY the candidate's voice. If the interviewer speaks at timestamp X, your start_time must be AFTER X.
+- Double-check: Does your start_time begin with the candidate speaking? If not, adjust it forward.
+- The verbatim_snippet must match EXACTLY what plays between start_time and end_time.
 
 Return JSON only:
 {
-  "start_time_seconds": number (exact timestamp where verbatim_snippet begins),
-  "end_time_seconds": number (exact timestamp where verbatim_snippet ends),
-  "question": "the interviewer's question that prompted this answer (short)",
-  "context": ["company/role context", "what they're explaining", "key detail"],
-  "verbatim_snippet": "EXACT words spoken by the candidate between start and end timestamps",
-  "vibe": ["what's great about them", "another strength", "growth area + how to work with it"]
+  "start_time_seconds": number,
+  "end_time_seconds": number,
+  "question": "what the interviewer asked before this (short)",
+  "context": ["company/role", "what they're explaining", "key detail"],
+  "verbatim_snippet": "EXACT transcription of audio between start and end timestamps",
+  "vibe": ["strength 1", "strength 2", "growth area + how to work with it"]
 }"""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
