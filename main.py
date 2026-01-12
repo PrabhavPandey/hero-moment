@@ -197,28 +197,29 @@ def analyze_interview(audio_path, progress_container):
     
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """You're a senior hiring manager listening to a candidate interview. Find their best 30-45 second moment.
+    prompt = """Act as an expert hiring manager. Find the single best ~45 second clip of the candidate speaking (the "Hero Moment").
 
-I need two things to match perfectly:
-1. An audio clip (defined by start/end timestamps)
-2. A transcript of that exact clip
+    Your goal is to extract a clip that stands on its own and showcases the candidate's highest potential.
 
-The transcript must be EXACTLY what plays in the audio clip. If I play the audio from start_time to end_time, I should hear word-for-word what's in verbatim_snippet.
+    Output format (JSON):
+    {
+        "start_time_seconds": <float> (Exact start of candidate's sentence. Do not include interviewer talking.),
+        "end_time_seconds": <float> (Natural end of the thought.),
+        "question": "<short summary of question asked>",
+        "current_company": "<current company name>",
+        "context": ["<bullet 1>", "<bullet 2>", "<bullet 3>"],
+        "verbatim_snippet": "<exact transcript of the clip>",
+        "vibe": [
+            "<Deep, character-level insight (1 sentence)>",
+            "<Observation on thinking style or potential (1 sentence)>",
+            "<Constructive coaching note (1 sentence)>"
+        ]
+    }
 
-When picking start_time: wait until the candidate actually starts talking. Add 1-2 seconds buffer after the interviewer stops to be safe.
-
-Return JSON:
-{
-  "start_time_seconds": number,
-  "end_time_seconds": number,
-  "question": "the question they're answering",
-  "current_company": "where they currently work",
-  "context": ["brief context point 1", "brief context point 2", "brief context point 3"],
-  "verbatim_snippet": "exact transcript of audio between start and end times",
-  "vibe": ["concise hiring manager observation", "another sharp insight", "one growth area to watch"]
-}
-
-For vibe: Write like a seasoned hiring manager's personal notes. One line each. Sharp, direct observations - not corporate speak."""
+    Vibe Guidelines:
+    - Write like a seasoned executive making private notes.
+    - Be profound and psychological, not generic.
+    - Strictly one sentence per bullet."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
