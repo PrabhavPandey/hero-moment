@@ -209,22 +209,27 @@ def analyze_interview(audio_path, progress_container):
     Output format (JSON):
     {
         "start_time_seconds": <float> (Candidate start time + 0.3s safety buffer),
-        "end_time_seconds": <float> (Natural end of the thought),
+        "end_time_seconds": <float> (Natural end of the thought. Must be > start_time),
         "question": "<short summary of question asked>",
         "current_company": "<current company name>",
-        "context": ["<bullet 1>", "<bullet 2>", "<bullet 3>"],
+        "years_of_experience": "<number of years>",
+        "context": [
+            "<Current Company> • <Years of Experience> years exp",
+            "<Simple, layman explanation of the topic/situation - max 1 sentence>"
+        ],
         "verbatim_snippet": "<exact transcript of the clip>",
         "vibe": [
-            "<Deep, character-level insight (1 sentence)>",
-            "<Observation on thinking style or potential (1 sentence)>",
-            "<Constructive coaching note (1 sentence)>"
+            "<Deep, character-level insight (max 1 concise line)>",
+            "<Observation on thinking style or potential (max 1 concise line)>",
+            "<Constructive coaching note (max 1 concise line)>"
         ]
     }
 
     Vibe Guidelines:
     - Write like a seasoned executive making private notes.
     - Be profound and psychological, not generic.
-    - Strictly one sentence per bullet."""
+    - Strictly one sentence per bullet.
+    - Keep it short and punchy."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
@@ -252,23 +257,23 @@ def process_audio(audio_path, progress_container):
     end = result.get('end_time_seconds')
     
     if start is not None and end is not None:
+        if end - start < 0.5:
+             st.error(f"generated clip too short: {start} -> {end}")
+             return
+
         st.markdown(f'<span class="timestamp-pill">{int(start//60)}:{int(start%60):02d} → {int(end//60)}:{int(end%60):02d}</span>', unsafe_allow_html=True)
         
         # Context box
         question = result.get('question', '')
         context = result.get('context', [])
-        current_company = result.get('current_company', '')
         
         st.markdown('<div class="context-box">', unsafe_allow_html=True)
         if question:
             st.markdown(f'<p class="context-label">question</p><p class="context-text">{question}</p>', unsafe_allow_html=True)
-        if context or current_company:
+        
+        if context:
             st.markdown('<p class="context-label" style="margin-top: 0.8rem;">context</p>', unsafe_allow_html=True)
-            context_items = []
-            if current_company:
-                context_items.append(f'current company: {current_company}')
-            context_items.extend(context)
-            bullets = ''.join(f'<li>{c}</li>' for c in context_items)
+            bullets = ''.join(f'<li>{c}</li>' for c in context)
             st.markdown(f'<ul class="context-list">{bullets}</ul>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
         
