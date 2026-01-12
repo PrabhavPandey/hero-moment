@@ -222,10 +222,12 @@ Return JSON only:
   "question": "short version of interviewer's question (max 2 lines)",
   "context": ["which company/role this was at", "what specific thing they're explaining", "key detail that helps understand the clip"],
   "verbatim_snippet": "exact words spoken",
-  "vibe": ["punchy insight", "another insight", "third insight"]
+  "vibe": ["insight 1", "insight 2", "insight 3"]
 }
 
-Keep question short. Context = 3 brief bullets. Vibe = lowercase, what actually stands out about this person."""
+Keep question short. Context = 3 brief bullets for the clip.
+
+VIBE = based on the ENTIRE interview (not just the clip). Be informal, brutally honest, yet directional. Like you're texting your friend: "here's the real deal on this person". Lowercase, no fluff."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
