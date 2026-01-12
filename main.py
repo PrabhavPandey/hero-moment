@@ -238,7 +238,7 @@ VIBE = Exactly 3 bullets based on the ENTIRE interview:
 3. What was "off" about them or a weakness, and briefly how they can fix it.
 Be informal, brutally honest, yet directional. Lowercase, no fluff."""
 
-    model = genai.GenerativeModel('gemini-1.5-pro')
+    model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content(
         [genai.upload_file(audio_path), prompt],
         generation_config={"response_mime_type": "application/json"}
