@@ -201,15 +201,17 @@ def analyze_interview(audio_path, progress_container):
     
     prompt = """Listen to this interview and pick the single best ~45 second clip that shows the candidate at their most impressive — the moment that would make any hiring manager say "I need to meet this person."
 
-STRICT GUARDRAIL: The clip must START and END with the candidate speaking. Never include the interviewer's voice.
+STRICT GUARDRAILS:
+1. The clip must START and END with the candidate speaking. Never include the interviewer's voice.
+2. CRITICAL: start_time_seconds and end_time_seconds must EXACTLY match the verbatim_snippet. The audio between those timestamps should contain precisely those words, nothing more, nothing less.
 
 Return JSON only:
 {
-  "start_time_seconds": number,
-  "end_time_seconds": number,
+  "start_time_seconds": number (exact timestamp where verbatim_snippet begins),
+  "end_time_seconds": number (exact timestamp where verbatim_snippet ends),
   "question": "the interviewer's question that prompted this answer (short)",
   "context": ["company/role context", "what they're explaining", "key detail"],
-  "verbatim_snippet": "EXACT words spoken by the candidate",
+  "verbatim_snippet": "EXACT words spoken by the candidate between start and end timestamps",
   "vibe": ["what's great about them", "another strength", "growth area + how to work with it"]
 }"""
 
