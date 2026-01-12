@@ -200,23 +200,31 @@ def analyze_interview(audio_path, progress_container):
     prompt = """Listen to this interview carefully. Your task is to find the single best ~45 second clip of the CANDIDATE (not interviewer) speaking.
 
 STEP 1: Identify the best moment where the candidate sounds most impressive
-STEP 2: Note the EXACT second when the candidate STARTS speaking that segment (not when the interviewer finishes)
-STEP 3: Note the EXACT second when the candidate STOPS speaking that segment
-STEP 4: Transcribe EXACTLY what is said between those two timestamps
+STEP 2: Find the EXACT timestamp when the candidate's FIRST WORD of that segment begins (this is critical - not when the interviewer stops, but when the candidate's voice actually starts)
+STEP 3: Find the EXACT timestamp when the candidate's LAST WORD of that segment ends
+STEP 4: Transcribe EXACTLY what the candidate says between those timestamps
 
-CRITICAL RULES:
-- The clip must contain ONLY the candidate's voice. If the interviewer speaks at timestamp X, your start_time must be AFTER X.
-- Double-check: Does your start_time begin with the candidate speaking? If not, adjust it forward.
-- The verbatim_snippet must match EXACTLY what plays between start_time and end_time.
+CRITICAL TIMESTAMP RULES:
+- start_time_seconds must be the PRECISE moment the candidate begins speaking their first word
+- If there is ANY silence or interviewer audio before the candidate speaks, your start_time is WRONG - push it forward
+- The verbatim_snippet's first word must be audible at EXACTLY start_time_seconds (not 1-2 seconds later)
+- Listen to your proposed start_time and verify: "Is the candidate's voice the FIRST thing I hear?" If not, add seconds until it is.
+- It's better to start 1 second late than 1 second early
+
+VERIFICATION CHECK (do this before responding):
+- Play the audio at start_time_seconds in your mind
+- The very first sound must be the candidate saying the first word of verbatim_snippet
+- If there's interviewer voice or silence first, increase start_time_seconds
 
 Return JSON only:
 {
-  "start_time_seconds": number,
-  "end_time_seconds": number,
+  "start_time_seconds": number (precise moment candidate's first word begins),
+  "end_time_seconds": number (moment candidate's last word ends),
+  "first_word": "the exact first word the candidate says at start_time",
   "question": "what the interviewer asked before this (short)",
   "current_company": "the company/organization the candidate is currently working at or most recently worked at",
   "context": ["what they're explaining", "the situation or challenge they faced", "key detail about their approach"],
-  "verbatim_snippet": "EXACT transcription of audio between start and end timestamps",
+  "verbatim_snippet": "EXACT transcription - must start with first_word at start_time_seconds",
   "vibe": ["one profound insight about how they think or operate - at least one full sentence", "another deep observation about their working style or character - at least one full sentence", "a growth area with specific guidance on how to coach them - at least one full sentence"]
 }
 
