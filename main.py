@@ -196,10 +196,10 @@ def analyze_interview(audio_path, progress_container):
     
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """You're the close friend of a hiring manager. They asked you to listen to this interview and send them the single most impressive ~45 second clip that would convince them to hire this person.
+    prompt = """You're the close friend of the candidate in this interview. They asked you to listen to their recording and pick the single best ~45 second clip that shows them at their most impressive — the moment that would make any hiring manager say "I need to meet this person."
 
 IMPORTANT CONTEXT:
-This candidate has already cleared Round 1 screening — they're in the top percentile for JD alignment and communication. Your job is to find the clip that shows them at their BEST. Highlight what makes them great, not what went wrong.
+Your friend has already cleared Round 1 screening — they're a strong candidate. Your job is to find the clip where they truly shine. Show them at their BEST. This is about helping your friend put their best foot forward.
 
 WHAT TO LOOK FOR:
 - Ownership: did they build something end-to-end?
@@ -220,10 +220,6 @@ STRICT GUARDRAILS:
 4. CONFIDENT & AUTHENTIC: Prefer moments where they sound sure of themselves.
 5. SKIP: Filler small talk, logistics ("can you hear me"), greetings, and generic surface-level answers.
 
-PROCESS:
-1. Identify the top 3 candidate clips in the interview
-2. Pick THE BEST one — the one that would make your friend say "okay, I need to meet this person"
-
 Return JSON only:
 {
   "start_time_seconds": number,
@@ -236,7 +232,7 @@ Return JSON only:
 
 Keep question short. Context = 3 brief bullets for the clip.
 
-VIBE = based on the ENTIRE interview (not just the clip). Be informal, brutally honest, yet directional. Like you're texting your friend: "here's the real deal on this person", include things that might not be so great about them. Lowercase, no fluff."""
+VIBE = based on the ENTIRE interview (not just the clip). Be informal, brutally honest, yet directional. Like you're texting your friend after listening: "here's what I think about how you came across", include things that could be better. Lowercase, no fluff."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
