@@ -199,20 +199,19 @@ def analyze_interview(audio_path, progress_container):
     
     prompt = """Act as an expert hiring manager. Find the single best ~45 second clip of the candidate speaking (the "Hero Moment").
 
-    Your goal is to extract a clip that stands on its own and showcases the candidate's highest potential.
+    Goal: Extract a continuous 30-60 second segment where the candidate shines.
 
-    CRITICAL AUDIO RULE: The clip must NOT contain the interviewer's voice.
-    - Locate the exact start of the candidate's first word.
-    - Then, ADD a 0.2-0.5 second buffer to that timestamp.
-    - It is better to cut off the candidate's first syllable than to hear the interviewer's last word.
+    CRITICAL RULES:
+    1. DURATION: The clip MUST be at least 30 seconds long. Do not return short answers.
+    2. AUDIO SAFETY: To avoid hearing the interviewer, start the timestamp 1 second AFTER the candidate begins speaking.
+       - It is better to start in the middle of a sentence than to hear the interviewer.
+    3. CONTENT: Find a moment where they tell a story, explain a complex concept, or show deep insight.
 
     Output format (JSON):
     {
-        "start_time_seconds": <float> (Candidate start time + 0.3s safety buffer),
-        "end_time_seconds": <float> (Natural end of the thought. Must be > start_time),
+        "start_time_seconds": <float>,
+        "end_time_seconds": <float>,
         "question": "<short summary of question asked>",
-        "current_company": "<current company name>",
-        "years_of_experience": "<number of years>",
         "context": [
             "<Current Company> • <Years of Experience> years exp",
             "<Simple, layman explanation of the topic/situation - max 1 sentence>"
@@ -257,10 +256,6 @@ def process_audio(audio_path, progress_container):
     end = result.get('end_time_seconds')
     
     if start is not None and end is not None:
-        if end - start < 0.5:
-             st.error(f"generated clip too short: {start} -> {end}")
-             return
-
         st.markdown(f'<span class="timestamp-pill">{int(start//60)}:{int(start%60):02d} → {int(end//60)}:{int(end%60):02d}</span>', unsafe_allow_html=True)
         
         # Context box
