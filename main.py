@@ -214,11 +214,10 @@ AVOID:
 - Vague claims without substance
 
 STRICT GUARDRAILS:
-1. CANDIDATE ONLY: The clip must be the candidate speaking. Never include the interviewer's voice.
+1. CANDIDATE ONLY — CRITICAL: The clip must start AND end with the candidate speaking. NEVER include any part where the interviewer is talking. If the interviewer asks a question, start the clip AFTER they finish speaking. Zero tolerance.
 2. ONE CONTINUOUS SEGMENT: No stitching. Pick one unbroken clip.
-3. DURATION: Minimum 30 seconds, maximum 45 seconds. No exceptions.
-4. CONFIDENT & AUTHENTIC: Prefer moments where they sound sure of themselves.
-5. SKIP: Filler small talk, logistics ("can you hear me"), greetings, and generic surface-level answers.
+3. CONFIDENT & AUTHENTIC: Prefer moments where they sound sure of themselves.
+4. SKIP: Filler small talk, logistics ("can you hear me"), greetings, and generic surface-level answers.
 
 Return JSON only:
 {
