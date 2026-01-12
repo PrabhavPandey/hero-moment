@@ -134,7 +134,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<h1 class="hero-title">✦ vibe check</h1>', unsafe_allow_html=True)
-st.markdown('<p class="hero-subtitle">find the most compelling 45 seconds from any Round1 audio</p>', unsafe_allow_html=True)
+st.markdown('<p class="hero-subtitle">find the most compelling 45 seconds from any Round1 audio.</p>', unsafe_allow_html=True)
 
 def parse_response(text):
     """Parse JSON from Gemini response"""
@@ -198,6 +198,9 @@ def analyze_interview(audio_path, progress_container):
     
     prompt = """You're the close friend of a hiring manager. They asked you to listen to this interview and send them the single most impressive ~45 second clip that would convince them to hire this person.
 
+IMPORTANT CONTEXT:
+This candidate has already cleared Round 1 screening — they're in the top percentile for JD alignment and communication. Your job is to find the clip that shows them at their BEST. Highlight what makes them great, not what went wrong.
+
 WHAT TO LOOK FOR:
 - Ownership: did they build something end-to-end?
 - Initiative: did they go beyond what was asked?
@@ -210,9 +213,16 @@ AVOID:
 - Generic cliche lines ("I'm a team player", "I love challenges")
 - Vague claims without substance
 
+STRICT GUARDRAILS:
+1. CANDIDATE ONLY: The clip must be the candidate speaking. Never include the interviewer's voice.
+2. ONE CONTINUOUS SEGMENT: No stitching. Pick one unbroken clip.
+3. DURATION: Minimum 30 seconds, maximum 45 seconds. No exceptions.
+4. CONFIDENT & AUTHENTIC: Prefer moments where they sound sure of themselves.
+5. SKIP: Filler small talk, logistics ("can you hear me"), greetings, and generic surface-level answers.
+
 PROCESS:
-1. First, identify the top 3 candidate clips in the interview
-2. Then pick THE BEST one — the one that would make your friend say "okay, I need to meet this person"
+1. Identify the top 3 candidate clips in the interview
+2. Pick THE BEST one — the one that would make your friend say "okay, I need to meet this person"
 
 Return JSON only:
 {
@@ -220,13 +230,13 @@ Return JSON only:
   "end_time_seconds": number,
   "question": "short version of interviewer's question (max 2 lines)",
   "context": ["which company/role this was at", "what specific thing they're explaining", "key detail that helps understand the clip"],
-  "verbatim_snippet": "exact words spoken",
+  "verbatim_snippet": "EXACT words spoken by the candidate between these timestamps",
   "vibe": ["insight 1", "insight 2", "insight 3"]
 }
 
 Keep question short. Context = 3 brief bullets for the clip.
 
-VIBE = based on the ENTIRE interview (not just the clip). Be informal, brutally honest, yet directional. Like you're texting your friend: "here's the real deal on this person", include things that might not be so great about them them. Lowercase, no fluff."""
+VIBE = based on the ENTIRE interview (not just the clip). Be informal, brutally honest, yet directional. Like you're texting your friend: "here's the real deal on this person", include things that might not be so great about them. Lowercase, no fluff."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
