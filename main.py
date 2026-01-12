@@ -197,13 +197,23 @@ def analyze_interview(audio_path, progress_container):
     
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """You're a hiring manager. Find the ~45 second clip that reveals WHO this person really is.
+    prompt = """You're the close friend of a hiring manager. They asked you to listen to this interview and send them the single most impressive ~45 second clip that would convince them to hire this person.
 
-PRIORITY ORDER (use first match):
-1. VIBE FIRST: Find where they talk about WHY — their passion for this role, what drives them, their motivation, what excites them, why they want to work here, what makes them tick. This is the gold.
-2. ONLY IF NO VIBE EXISTS: Fall back to hard skills — problem-solving, technical abilities, projects they built.
+WHAT TO LOOK FOR:
+- Ownership: did they build something end-to-end?
+- Initiative: did they go beyond what was asked?
+- Real passion: not rehearsed, not cliche — you can hear it's genuine
+- 0 to 1: starting something from scratch
+- Pure clarity: they explain complex things simply
 
-I want to hear their energy, their fire, their "why" — not just what they did.
+AVOID:
+- Fake, rehearsed-sounding answers
+- Generic cliche lines ("I'm a team player", "I love challenges")
+- Vague claims without substance
+
+PROCESS:
+1. First, identify the top 3 candidate clips in the interview
+2. Then pick THE BEST one — the one that would make your friend say "okay, I need to meet this person"
 
 Return JSON only:
 {
@@ -215,7 +225,7 @@ Return JSON only:
   "vibe": ["punchy insight", "another insight", "third insight"]
 }
 
-Keep question short (2 lines max). Context should be 3 brief bullets. Vibe: lowercase, capture what makes this person unique."""
+Keep question short. Context = 3 brief bullets. Vibe = lowercase, what actually stands out about this person."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
