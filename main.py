@@ -192,49 +192,26 @@ def extract_audio(input_path, start, end, output_path):
 
 def analyze_interview(audio_path, progress_container):
     """Send audio to Gemini and get hero moment"""
-    progress_container.markdown('<p class="progress-step">🔍 analyzing with gemini...</p>', unsafe_allow_html=True)
+    progress_container.markdown('''
+        <p class="progress-step">🔍 analyzing with gemini...</p>
+        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2ZhZmk0M3I3MWNzbzU3bXkxcW84aWNtbmJwbnZ0M2Z6Nm0wZG1xYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/DfSXiR60W9MVq/giphy.gif" style="width: 200px; margin: 1rem 0; border-radius: 8px;">
+    ''', unsafe_allow_html=True)
     
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """You're the close friend of the candidate in this interview. They asked you to listen to their recording and pick the single best ~45 second clip that shows them at their most impressive — the moment that would make any hiring manager say "I need to meet this person."
+    prompt = """Listen to this interview and pick the single best ~45 second clip that shows the candidate at their most impressive — the moment that would make any hiring manager say "I need to meet this person."
 
-IMPORTANT CONTEXT:
-Your friend has already cleared Round 1 screening — they're a strong candidate. Your job is to find the clip where they truly shine. Show them at their BEST. This is about helping your friend put their best foot forward.
-
-WHAT TO LOOK FOR:
-- Ownership: did they build something end-to-end?
-- Initiative: did they go beyond what was asked?
-- Real passion: not rehearsed, not cliche — you can hear it's genuine
-- 0 to 1: starting something from scratch
-- Pure clarity: they explain complex things simply
-
-AVOID:
-- Fake, rehearsed-sounding answers
-- Generic cliche lines ("I'm a team player", "I love challenges")
-- Vague claims without substance
-
-STRICT GUARDRAILS:
-1. CANDIDATE ONLY — CRITICAL: The clip must start AND end with the candidate speaking. NEVER include any part where the interviewer is talking. If the interviewer asks a question, start the clip AFTER they finish speaking. Zero tolerance.
-2. ONE CONTINUOUS SEGMENT: No stitching. Pick one unbroken clip.
-3. CONFIDENT & AUTHENTIC: Prefer moments where they sound sure of themselves.
-4. SKIP: Filler small talk, logistics ("can you hear me"), greetings, and generic surface-level answers.
+STRICT GUARDRAIL: The clip must START and END with the candidate speaking. Never include the interviewer's voice.
 
 Return JSON only:
 {
   "start_time_seconds": number,
   "end_time_seconds": number,
-  "question": "short version of interviewer's question (max 2 lines)",
-  "context": ["which company/role this was at", "what specific thing they're explaining", "key detail that helps understand the clip"],
-  "verbatim_snippet": "EXACT words spoken by the candidate between these timestamps",
-  "vibe": ["best thing 1", "best thing 2", "growth area + how to work with it"]
-}
-
-Keep question short. Context = 3 brief bullets for the clip.
-
-VIBE = for the hiring manager, based on the ENTIRE interview. Short, brutally honest, informal.
-- First 2 bullets: what's genuinely great about this person
-- Third bullet: one thing that wasn't great + how to work around it or develop them
-Lowercase, no fluff, no corporate speak."""
+  "question": "the interviewer's question that prompted this answer (short)",
+  "context": ["company/role context", "what they're explaining", "key detail"],
+  "verbatim_snippet": "EXACT words spoken by the candidate",
+  "vibe": ["what's great about them", "another strength", "growth area + how to work with it"]
+}"""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
