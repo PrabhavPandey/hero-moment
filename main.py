@@ -201,10 +201,15 @@ def analyze_interview(audio_path, progress_container):
 
     Your goal is to extract a clip that stands on its own and showcases the candidate's highest potential.
 
+    CRITICAL AUDIO RULE: The clip must NOT contain the interviewer's voice.
+    - Locate the exact start of the candidate's first word.
+    - Then, ADD a 0.2-0.5 second buffer to that timestamp.
+    - It is better to cut off the candidate's first syllable than to hear the interviewer's last word.
+
     Output format (JSON):
     {
-        "start_time_seconds": <float> (Exact start of candidate's sentence. Do not include interviewer talking.),
-        "end_time_seconds": <float> (Natural end of the thought.),
+        "start_time_seconds": <float> (Candidate start time + 0.3s safety buffer),
+        "end_time_seconds": <float> (Natural end of the thought),
         "question": "<short summary of question asked>",
         "current_company": "<current company name>",
         "context": ["<bullet 1>", "<bullet 2>", "<bullet 3>"],
