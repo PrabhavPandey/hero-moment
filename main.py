@@ -197,21 +197,22 @@ def analyze_interview(audio_path, progress_container):
     
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """Act as an expert hiring manager. Find the single best 30-50 second clip of the candidate speaking (the "Hero Moment").
-
-    Goal: Extract a continuous 30-50 second segment where the candidate shines.
-
-    CRITICAL RULES:
-    1. DURATION: The clip MUST be between 30 and 50 seconds.
-       - If the answer is long, find the most punchy 45s section.
-       - If it's short, find a different segment.
-    2. START TIME: Identify the PRECISE start of the candidate's first word.
-    3. CONTENT: Find a moment where they tell a story, explain a complex concept, or show deep insight.
-
+    prompt = """Listen to this interview.
+    
+    RULE 1: The first voice you hear is the INTERVIEWER.
+    RULE 2: The other voice is the CANDIDATE.
+    
+    Your goal: Find the single best ~45 second clip of the CANDIDATE speaking.
+    
+    CRITICAL: The clip must contain ONLY the CANDIDATE'S voice.
+    - Do not include the Interviewer asking the question.
+    - Do not include the Interviewer saying "mhm", "yeah", "go ahead".
+    - Find a clean segment where the Candidate is speaking continuously.
+    
     Output format (JSON):
     {
-        "start_time_seconds": <float> (Exact start of candidate's voice),
-        "end_time_seconds": <float> (End of clip - max 50s after start),
+        "start_time_seconds": <float> (Exact start of the candidate's sentence),
+        "end_time_seconds": <float> (Natural end of the thought, ~45s later),
         "question": "<short summary of question asked>",
         "context": [
             "<Current Company> • <Years of Experience> years exp",
@@ -257,13 +258,6 @@ def process_audio(audio_path, progress_container):
     end = result.get('end_time_seconds')
     
     if start is not None and end is not None:
-        # Enforce max duration (trim end if needed)
-        if end - start > 50:
-            end = start + 50
-            
-        # Add safety buffer to start to cut interviewer (0.5s)
-        start += 0.5
-        
         st.markdown(f'<span class="timestamp-pill">{int(start//60)}:{int(start%60):02d} → {int(end//60)}:{int(end%60):02d}</span>', unsafe_allow_html=True)
         
         # Context box
