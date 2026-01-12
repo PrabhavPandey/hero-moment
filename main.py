@@ -227,12 +227,15 @@ Return JSON only:
   "question": "short version of interviewer's question (max 2 lines)",
   "context": ["which company/role this was at", "what specific thing they're explaining", "key detail that helps understand the clip"],
   "verbatim_snippet": "EXACT words spoken by the candidate between these timestamps",
-  "vibe": ["insight 1", "insight 2", "insight 3"]
+  "vibe": ["best thing 1", "best thing 2", "growth area + how to work with it"]
 }
 
 Keep question short. Context = 3 brief bullets for the clip.
 
-VIBE = based on the ENTIRE interview (not just the clip). Be informal, brutally honest, yet directional. Like you're texting your friend after listening: "here's what I think about how you came across", include things that could be better. Lowercase, no fluff."""
+VIBE = for the hiring manager, based on the ENTIRE interview. Short, brutally honest, informal.
+- First 2 bullets: what's genuinely great about this person
+- Third bullet: one thing that wasn't great + how to work around it or develop them
+Lowercase, no fluff, no corporate speak."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
