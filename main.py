@@ -153,6 +153,7 @@ def parse_response(text):
             pass
     return None
 
+
 def download_audio(url, progress_container):
     """Download audio from URL"""
     try:
@@ -168,6 +169,7 @@ def download_audio(url, progress_container):
     except Exception as e:
         st.error(f"download failed: {e}")
         return None
+
 
 def extract_audio(input_path, start, end, output_path):
     """Extract audio segment using ffmpeg"""
@@ -190,47 +192,47 @@ def extract_audio(input_path, start, end, output_path):
 
 def analyze_interview(audio_path, progress_container):
     """Send audio to Gemini and get hero moment"""
-    progress_container.markdown('''
-        <p class="progress-step">🔍 gemini is doing its thing...</p>
-        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2ZhZmk0M3I3MWNzbzU3bXkxcW84aWNtbmJwbnZ0M2Z6Nm0wZG1xYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/DfSXiR60W9MVq/giphy.gif" style="width: 300px; margin: 1rem 0; border-radius: 8px;">
-    ''', unsafe_allow_html=True)
+    progress_container.markdown('<p class="progress-step">🔍 analyzing with gemini...</p>', unsafe_allow_html=True)
     
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """Listen to this interview.
-    
-    RULE 1: The first voice you hear is the INTERVIEWER.
-    RULE 2: The other voice is the CANDIDATE.
-    
-    Your goal: Find the single best ~45 second clip of the CANDIDATE speaking.
-    
-    CRITICAL: The clip must contain ONLY the CANDIDATE'S voice.
-    - Do not include the Interviewer asking the question.
-    - Do not include the Interviewer saying "mhm", "yeah", "go ahead".
-    - Find a clean segment where the Candidate is speaking continuously.
-    
-    Output format (JSON):
-    {
-        "start_time_seconds": <float> (Exact start of the candidate's sentence),
-        "end_time_seconds": <float> (Natural end of the thought, ~45s later),
-        "question": "<short summary of question asked>",
-        "context": [
-            "<Current Company> • <Years of Experience> years exp",
-            "<Simple, layman explanation of the topic/situation - max 1 sentence>"
-        ],
-        "verbatim_snippet": "<exact transcript of the clip>",
-        "vibe": [
-            "<Deep, character-level insight (max 1 concise line)>",
-            "<Observation on thinking style or potential (max 1 concise line)>",
-            "<Constructive coaching note (max 1 concise line)>"
-        ]
-    }
+    prompt = """You're the close friend of a hiring manager. They asked you to listen to this interview and send them the single most impressive ~45 second clip that would convince them to hire this person.
 
-    Vibe Guidelines:
-    - Write like a seasoned executive making private notes.
-    - Be profound and psychological, not generic.
-    - Strictly one sentence per bullet.
-    - Keep it short and punchy."""
+IMPORTANT CONTEXT:
+This candidate has already cleared Round 1 screening — they're in the top percentile for JD alignment and communication. Your job is to find the clip that shows them at their BEST. Highlight what makes them great, not what went wrong.
+
+WHAT TO LOOK FOR:
+- Ownership: did they build something end-to-end?
+- Initiative: did they go beyond what was asked?
+- Real passion: not rehearsed, not cliche — you can hear it's genuine
+- 0 to 1: starting something from scratch
+- Pure clarity: they explain complex things simply
+
+AVOID:
+- Fake, rehearsed-sounding answers
+- Generic cliche lines ("I'm a team player", "I love challenges")
+- Vague claims without substance
+
+STRICT GUARDRAILS:
+1. CANDIDATE ONLY: The clip must be the candidate speaking. Never include the interviewer's voice.
+2. ONE CONTINUOUS SEGMENT: No stitching. Pick one unbroken clip.
+3. DURATION: Minimum 30 seconds, maximum 45 seconds. No exceptions.
+4. CONFIDENT & AUTHENTIC: Prefer moments where they sound sure of themselves.
+5. SKIP: Filler small talk, logistics ("can you hear me"), greetings, and generic surface-level answers.
+
+Return JSON only:
+{
+  "start_time_seconds": number,
+  "end_time_seconds": number,
+  "question": "short version of interviewer's question (max 2 lines)",
+  "context": ["which company/role this was at", "what specific thing they're explaining", "key detail that helps understand the clip"],
+  "verbatim_snippet": "EXACT words spoken by the candidate between these timestamps",
+  "vibe": ["insight 1", "insight 2", "insight 3"]
+}
+
+Keep question short. Context = 3 brief bullets for the clip.
+
+VIBE = based on the ENTIRE interview (not just the clip). Be informal, brutally honest, yet directional. Like you're texting your friend: "here's the real deal on this person", include things that might not be so great about them. Lowercase, no fluff."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
@@ -267,7 +269,6 @@ def process_audio(audio_path, progress_container):
         st.markdown('<div class="context-box">', unsafe_allow_html=True)
         if question:
             st.markdown(f'<p class="context-label">question</p><p class="context-text">{question}</p>', unsafe_allow_html=True)
-        
         if context:
             st.markdown('<p class="context-label" style="margin-top: 0.8rem;">context</p>', unsafe_allow_html=True)
             bullets = ''.join(f'<li>{c}</li>' for c in context)
@@ -309,10 +310,7 @@ def is_valid_audio_url(url):
     if not url:
         return False
     url_lower = url.lower()
-    # Check for audio extensions OR known audio hosting patterns (like Azure blob with ai-interviews)
-    has_audio_ext = any(ext in url_lower for ext in ['.ogg', '.mp3', '.wav', '.m4a', '.oga'])
-    is_known_audio_host = 'ai-interviews' in url_lower or 'audio' in url_lower
-    return url_lower.startswith('http') and (has_audio_ext or is_known_audio_host)
+    return url_lower.startswith('http') and any(ext in url_lower for ext in ['.ogg', '.mp3', '.wav', '.m4a'])
 
 
 def main():
