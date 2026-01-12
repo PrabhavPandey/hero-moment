@@ -9,7 +9,7 @@ import google.generativeai as genai
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 
 st.set_page_config(
-    page_title="hero moment",
+    page_title="vibe check",
     page_icon="✦",
     layout="centered",
     initial_sidebar_state="collapsed"
