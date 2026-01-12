@@ -67,11 +67,11 @@ st.markdown("""
         list-style: none; padding: 0; margin: 0.3rem 0 0 0;
     }
     .context-list li {
-        color: #8a8a8a; font-size: 0.85rem; line-height: 1.5;
-        padding-left: 1rem; position: relative; margin-bottom: 0.2rem;
+        color: #d0d0d0; font-size: 1.05rem; line-height: 1.7;
+        padding-left: 1.4rem; position: relative; margin-bottom: 0.6rem;
     }
     .context-list li::before {
-        content: "•"; position: absolute; left: 0; color: #5a5a5a;
+        content: "→"; position: absolute; left: 0; color: #5a5a5a;
     }
     
     .section-label {
@@ -192,7 +192,8 @@ def extract_audio(input_path, start, end, output_path):
 
 def analyze_interview(audio_path, progress_container):
     """Send audio to Gemini and get hero moment"""
-    progress_container.markdown('<p class="progress-step">🔍 analyzing with gemini...</p>', unsafe_allow_html=True)
+    progress_container.markdown('<p class="progress-step">🔍 gemini is doing its thing...</p>', unsafe_allow_html=True)
+    progress_container.markdown('<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2ZhZmk0M3I3MWNzbzU3bXkxcW84aWNtbmJwbnZ0M2Z6Nm0wZG1xYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/DfSXiR60W9MVq/giphy.gif" width="300" style="margin-bottom: 1rem; border-radius: 8px;">', unsafe_allow_html=True)
     
     genai.configure(api_key=GEMINI_API_KEY)
     
@@ -216,9 +217,8 @@ AVOID:
 STRICT GUARDRAILS:
 1. CANDIDATE ONLY: The clip must be the candidate speaking. Never include the interviewer's voice.
 2. ONE CONTINUOUS SEGMENT: No stitching. Pick one unbroken clip.
-3. DURATION: Minimum 30 seconds, maximum 45 seconds. No exceptions.
-4. CONFIDENT & AUTHENTIC: Prefer moments where they sound sure of themselves.
-5. SKIP: Filler small talk, logistics ("can you hear me"), greetings, and generic surface-level answers.
+3. CONFIDENT & AUTHENTIC: Prefer moments where they sound sure of themselves.
+4. SKIP: Filler small talk, logistics ("can you hear me"), greetings, and generic surface-level answers.
 
 Return JSON only:
 {
@@ -227,15 +227,22 @@ Return JSON only:
   "question": "short version of interviewer's question (max 2 lines)",
   "context": ["which company/role this was at", "what specific thing they're explaining", "key detail that helps understand the clip"],
   "verbatim_snippet": "EXACT words spoken by the candidate between these timestamps",
-  "vibe": ["insight 1", "insight 2", "insight 3"]
+  "vibe": ["insight 1", "insight 2", "improvement area"]
 }
 
 Keep question short. Context = 3 brief bullets for the clip.
 
-VIBE = based on the ENTIRE interview (not just the clip). Be informal, brutally honest, yet directional. Like you're texting your friend: "here's the real deal on this person", include things that might not be so great about them. Lowercase, no fluff."""
+VIBE = Exactly 3 bullets based on the ENTIRE interview:
+1. First major strength or impressive trait
+2. Second major strength or unique quality
+3. What was "off" about them or a weakness, and briefly how they can fix it.
+Be informal, brutally honest, yet directional. Lowercase, no fluff."""
 
-    model = genai.GenerativeModel('gemini-2.5-pro')
-    response = model.generate_content([genai.upload_file(audio_path), prompt])
+    model = genai.GenerativeModel('gemini-1.5-pro')
+    response = model.generate_content(
+        [genai.upload_file(audio_path), prompt],
+        generation_config={"response_mime_type": "application/json"}
+    )
     
     progress_container.markdown('<p class="progress-step done">✓ analysis complete</p>', unsafe_allow_html=True)
     return response.text
@@ -248,6 +255,8 @@ def process_audio(audio_path, progress_container):
     
     if not result:
         st.error("failed to parse response")
+        with st.expander("debug raw response"):
+            st.code(raw)
         os.unlink(audio_path)
         return
     
