@@ -153,7 +153,6 @@ def parse_response(text):
             pass
     return None
 
-
 def download_audio(url, progress_container):
     """Download audio from URL"""
     try:
@@ -169,7 +168,6 @@ def download_audio(url, progress_container):
     except Exception as e:
         st.error(f"download failed: {e}")
         return None
-
 
 def extract_audio(input_path, start, end, output_path):
     """Extract audio segment using ffmpeg"""
@@ -193,8 +191,8 @@ def extract_audio(input_path, start, end, output_path):
 def analyze_interview(audio_path, progress_container):
     """Send audio to Gemini and get hero moment"""
     progress_container.markdown('''
-        <p class="progress-step">🔍 analyzing with gemini...</p>
-        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2ZhZmk0M3I3MWNzbzU3bXkxcW84aWNtbmJwbnZ0M2Z6Nm0wZG1xYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/DfSXiR60W9MVq/giphy.gif" style="width: 200px; margin: 1rem 0; border-radius: 8px;">
+        <p class="progress-step">🔍 gemini is doing its thing...</p>
+        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2ZhZmk0M3I3MWNzbzU3bXkxcW84aWNtbmJwbnZ0M2Z6Nm0wZG1xYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/DfSXiR60W9MVq/giphy.gif" style="width: 300px; margin: 1rem 0; border-radius: 8px;">
     ''', unsafe_allow_html=True)
     
     genai.configure(api_key=GEMINI_API_KEY)
@@ -216,10 +214,16 @@ Return JSON only:
   "start_time_seconds": number,
   "end_time_seconds": number,
   "question": "what the interviewer asked before this (short)",
-  "context": ["company/role", "what they're explaining", "key detail"],
+  "current_company": "the company/organization the candidate is currently working at or most recently worked at",
+  "context": ["what they're explaining", "the situation or challenge they faced", "key detail about their approach"],
   "verbatim_snippet": "EXACT transcription of audio between start and end timestamps",
-  "vibe": ["strength 1", "strength 2", "growth area + how to work with it"]
-}"""
+  "vibe": ["one profound insight about how they think or operate - at least one full sentence", "another deep observation about their working style or character - at least one full sentence", "a growth area with specific guidance on how to coach them - at least one full sentence"]
+}
+
+IMPORTANT FOR VIBE:
+- Each vibe bullet MUST be a complete, insightful sentence (not just 2-3 words).
+- Go deep - these should be profound observations that reveal something meaningful about the candidate's character, thinking patterns, or working style.
+- Think like an experienced hiring manager extracting wisdom from listening to the entire interview."""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content([genai.upload_file(audio_path), prompt])
@@ -252,13 +256,18 @@ def process_audio(audio_path, progress_container):
         # Context box
         question = result.get('question', '')
         context = result.get('context', [])
+        current_company = result.get('current_company', '')
         
         st.markdown('<div class="context-box">', unsafe_allow_html=True)
         if question:
             st.markdown(f'<p class="context-label">question</p><p class="context-text">{question}</p>', unsafe_allow_html=True)
-        if context:
+        if context or current_company:
             st.markdown('<p class="context-label" style="margin-top: 0.8rem;">context</p>', unsafe_allow_html=True)
-            bullets = ''.join(f'<li>{c}</li>' for c in context)
+            context_items = []
+            if current_company:
+                context_items.append(f'current company: {current_company}')
+            context_items.extend(context)
+            bullets = ''.join(f'<li>{c}</li>' for c in context_items)
             st.markdown(f'<ul class="context-list">{bullets}</ul>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
         
