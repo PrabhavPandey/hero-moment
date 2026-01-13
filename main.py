@@ -229,7 +229,7 @@ Return JSON only:
 Keep question short. Context = 3 brief bullets for the clip.
 
 VIBE = Exactly 3 bullets based on the ENTIRE interview:
-1. First  trait
+1. First trait
 2. Second trait
 3. What was "off" about them or a weakness, and briefly how they can fix it.
 Be informal, brutally honest, yet directional. Lowercase, no fluff. 
