@@ -269,8 +269,8 @@ def process_audio(audio_path, progress_container):
     end = result.get('end_time_seconds')
     
     if start is not None and end is not None:
-        # Add 1s buffer to catch start/end cutoffs
-        start = max(0, start - 1)
+        # Add 2s buffer to start to catch cutoffs
+        start = max(0, start - 2)
         end = end + 1
 
         # Enforce minimum 30s duration by extending end time
