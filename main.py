@@ -202,13 +202,17 @@ def analyze_interview(audio_path, progress_container):
 CRITICAL INSTRUCTION:
 Listen to the ENTIRE audio file first. Do not just pick the first good answer you hear. Compare all candidate responses across the whole interview and pick the absolute strongest single moment.
 
-WHAT TO LOOK FOR:
-- Real passion: not rehearsed, not cliche — you can hear it's genuine
-- Pure clarity
+WHAT TO LOOK FOR (The "Hero" Moment):
+- High Agency & Drive: A moment where they pushed through a blocker, took a risk, or did something unasked because they cared.
+- Deep Problem Solving: Walking through a complex decision or tradeoff. Not just "what" they did, but "why" and "how".
+- Unique Insight: A contrarian opinion or a deep learning that shows they really understand their craft.
+- "Spiky" Traits: Obsession with quality, extreme user empathy, or technical depth.
 
-AVOID:
-- Generic cliche lines ("I'm a team player", "I love challenges")
-- Vague claims without substance
+AVOID (The "Meh" Moments):
+- Scenarios/Hypotheticals: "Let's say I am a user..." or "If I were in that situation..." (These are weak. Avoid them.)
+- Standard Bios/Intros: "I worked at X, then Y..."
+- Generic Process Descriptions: "We followed the agile methodology..."
+- Surface-Level Stories: Just describing events without the underlying thinking or motivation.
 
 STRICT GUARDRAILS:
 1. CANDIDATE ONLY: The clip must be the candidate speaking. Never include the interviewer's voice.
