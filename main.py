@@ -199,21 +199,15 @@ def analyze_interview(audio_path, progress_container):
     
     prompt = """You're the close friend of a hiring manager. They asked you to listen to this interview and send them the single most impressive ~45 second clip that would convince them to hire this person.
 
-IMPORTANT CONTEXT:
-This candidate has already cleared Round 1 screening — they're in the top percentile for JD alignment and communication. Your job is to find the clip that shows them at their BEST. Highlight what makes them great, not what went wrong.
-
 CRITICAL INSTRUCTION:
 Listen to the ENTIRE audio file first. Do not just pick the first good answer you hear. Compare all candidate responses across the whole interview and pick the absolute strongest single moment.
 
 WHAT TO LOOK FOR:
-- Ownership: did they build something end-to-end?
 - Initiative: did they go beyond what was asked?
 - Real passion: not rehearsed, not cliche — you can hear it's genuine
-- 0 to 1: starting something from scratch
 - Pure clarity
 
 AVOID:
-- Introductions/Bio ("My name is...", "I graduated from...") - THESE ARE BORING. NEVER PICK THEM.
 - Fake, rehearsed-sounding answers
 - Generic cliche lines ("I'm a team player", "I love challenges")
 - Vague claims without substance
@@ -280,6 +274,10 @@ def process_audio(audio_path, progress_container):
             mid = (start + end) / 2
             start = max(0, mid - 15)
             end = start + 30
+        
+        # Debug info for troubleshooting audio issues
+        # with st.expander("debug timing"):
+        #     st.write(f"Start: {start}, End: {end}, Duration: {end-start}")
 
         st.markdown(f'<span class="timestamp-pill">{int(start//60)}:{int(start%60):02d} → {int(end//60)}:{int(end%60):02d}</span>', unsafe_allow_html=True)
         
@@ -301,6 +299,12 @@ def process_audio(audio_path, progress_container):
             clip_path = f.name
         
         if extract_audio(audio_path, start, end, clip_path):
+            # Check for valid file size (MP3 header is small, but audio should be > 1KB)
+            if os.path.getsize(clip_path) < 1000:
+                st.error("Generated clip is empty or too short. Try a different file or check timestamps.")
+                os.unlink(clip_path)
+                return
+
             with open(clip_path, 'rb') as f:
                 audio_bytes = f.read()
             os.unlink(clip_path)
