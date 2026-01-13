@@ -203,12 +203,10 @@ CRITICAL INSTRUCTION:
 Listen to the ENTIRE audio file first. Do not just pick the first good answer you hear. Compare all candidate responses across the whole interview and pick the absolute strongest single moment.
 
 WHAT TO LOOK FOR:
-- Initiative: did they go beyond what was asked?
 - Real passion: not rehearsed, not cliche — you can hear it's genuine
 - Pure clarity
 
 AVOID:
-- Fake, rehearsed-sounding answers
 - Generic cliche lines ("I'm a team player", "I love challenges")
 - Vague claims without substance
 
@@ -224,7 +222,7 @@ Return JSON only:
   "end_time_seconds": number,
   "question": "short version of interviewer's question (max 2 lines)",
   "context": ["which company/role this was at", "what specific thing they're explaining", "key detail that helps understand the clip"],
-  "verbatim_snippet": "EXACT words spoken by the candidate between these timestamps",
+  "verbatim_snippet": "EXACT words spoken by the candidate between start_time_seconds and end_time_seconds",
   "vibe": ["insight 1", "insight 2", "improvement area"]
 }
 
@@ -235,10 +233,9 @@ VIBE = Exactly 3 bullets based on the ENTIRE interview:
 2. Second trait
 3. What was "off" about them or a weakness, and briefly how they can fix it.
 Be informal, brutally honest, yet directional. Lowercase, no fluff. 
-eg:"bro, this guys knows his shit" or "this guy BS's his way when put on the spot"
+eg:"this guy knows his shit" or "this guy BS's his way when put on the spot"
 
 """
-
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content(
         [genai.upload_file(audio_path), prompt],
