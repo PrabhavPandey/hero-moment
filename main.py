@@ -174,7 +174,7 @@ def download_audio(url, progress_container):
 def extract_audio(input_path, start, end, output_path):
     """Extract audio segment using ffmpeg"""
     cmd = [
-        'ffmpeg', '-y', '-accurate_seek',
+        'ffmpeg', '-y',
         '-ss', str(start), '-i', input_path,
         '-t', str(end - start),
         '-c:a', 'libmp3lame', '-q:a', '2',
@@ -269,10 +269,12 @@ def process_audio(audio_path, progress_container):
     end = result.get('end_time_seconds')
     
     if start is not None and end is not None:
-        # Enforce minimum 30s duration
+        # Add 1s buffer to catch start/end cutoffs
+        start = max(0, start - 1)
+        end = end + 1
+
+        # Enforce minimum 30s duration by extending end time
         if end - start < 30:
-            mid = (start + end) / 2
-            start = max(0, mid - 15)
             end = start + 30
         
         # Debug info for troubleshooting audio issues
