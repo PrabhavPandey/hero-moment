@@ -207,7 +207,7 @@ WHAT TO LOOK FOR:
 - Initiative: did they go beyond what was asked?
 - Real passion: not rehearsed, not cliche — you can hear it's genuine
 - 0 to 1: starting something from scratch
-- Pure clarity: they explain complex things simply
+- Pure clarity
 
 AVOID:
 - Fake, rehearsed-sounding answers
@@ -233,10 +233,13 @@ Return JSON only:
 Keep question short. Context = 3 brief bullets for the clip.
 
 VIBE = Exactly 3 bullets based on the ENTIRE interview:
-1. First major strength or impressive trait
-2. Second major strength or unique quality
+1. First  trait
+2. Second trait
 3. What was "off" about them or a weakness, and briefly how they can fix it.
-Be informal, brutally honest, yet directional. Lowercase, no fluff."""
+Be informal, brutally honest, yet directional. Lowercase, no fluff. 
+eg:"bro, this guys knows his shit" or "this guy BS's his way when put on the spot"
+
+"""
 
     model = genai.GenerativeModel('gemini-2.5-pro')
     response = model.generate_content(
@@ -269,6 +272,12 @@ def process_audio(audio_path, progress_container):
     end = result.get('end_time_seconds')
     
     if start is not None and end is not None:
+        # Enforce minimum 30s duration
+        if end - start < 30:
+            mid = (start + end) / 2
+            start = max(0, mid - 15)
+            end = start + 30
+
         st.markdown(f'<span class="timestamp-pill">{int(start//60)}:{int(start%60):02d} → {int(end//60)}:{int(end%60):02d}</span>', unsafe_allow_html=True)
         
         # Context box
