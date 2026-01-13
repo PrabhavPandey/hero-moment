@@ -197,10 +197,10 @@ def analyze_interview(audio_path, progress_container):
     
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """You're the close friend of a hiring manager. They asked you to listen to this interview and send them the single most impressive ~45 second clip that would convince them to hire this person.
+    prompt = """You're a close friend of a interviewee. They asked you to listen to this interview and send the single most impressive ~45 second clip that would convince a hiring manager to hire this person.
 
 CRITICAL INSTRUCTION:
-Listen to the ENTIRE audio file first. Do not just pick the first good answer you hear. Compare all candidate responses across the whole interview and pick the absolute strongest single moment.
+Listen to the ENTIRE audio file first. Do not just pick the first good answer you hear.
 
 WHAT TO LOOK FOR (The "Hero" Moment):
 - High Agency & Drive: A moment where they pushed through a blocker, took a risk, or did something unasked because they cared.
@@ -208,17 +208,10 @@ WHAT TO LOOK FOR (The "Hero" Moment):
 - Unique Insight: A contrarian opinion or a deep learning that shows they really understand their craft.
 - "Spiky" Traits: Obsession with quality, extreme user empathy, or technical depth.
 
-AVOID (The "Meh" Moments):
-- Scenarios/Hypotheticals: "Let's say I am a user..." or "If I were in that situation..." (These are weak. Avoid them.)
-- Standard Bios/Intros: "I worked at X, then Y..."
-- Generic Process Descriptions: "We followed the agile methodology..."
-- Surface-Level Stories: Just describing events without the underlying thinking or motivation.
-
 STRICT GUARDRAILS:
 1. CANDIDATE ONLY: The clip must be the candidate speaking. Never include the interviewer's voice.
 2. ONE CONTINUOUS SEGMENT: No stitching. Pick one unbroken clip.
-3. CONFIDENT & AUTHENTIC: Prefer moments where they sound sure of themselves.
-4. SKIP: Filler small talk, logistics ("can you hear me"), greetings, and generic surface-level answers.
+3. SKIP: Filler small talk, logistics ("can you hear me"), greetings.
 
 Return JSON only:
 {
@@ -230,9 +223,7 @@ Return JSON only:
   "vibe": ["insight 1", "insight 2", "improvement area"]
 }
 
-Keep question short. Context = 3 brief bullets for the clip.
-
-VIBE = Exactly 3 bullets based on the ENTIRE interview:
+VIBE = Exactly 3 short bullets based on the ENTIRE interview (not just the clip):
 1. First trait
 2. Second trait
 3. What was "off" about them or a weakness, and briefly how they can fix it.
