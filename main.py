@@ -210,6 +210,7 @@ WHAT TO LOOK FOR:
 - Pure clarity
 
 AVOID:
+- Introductions/Bio ("My name is...", "I graduated from...") - THESE ARE BORING. NEVER PICK THEM.
 - Fake, rehearsed-sounding answers
 - Generic cliche lines ("I'm a team player", "I love challenges")
 - Vague claims without substance
