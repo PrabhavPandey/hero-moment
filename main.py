@@ -202,6 +202,11 @@ def analyze_interview(audio_path, progress_container):
 CRITICAL INSTRUCTION:
 Listen to the ENTIRE audio file first. Do not just pick the first good answer you hear.
 
+priority order:
+
+1. look for a clip that displays their drive, passion and motivaion for the role.
+2. if not present, move to WHAT TO LOOK FOR (The "Hero" Moment).
+
 WHAT TO LOOK FOR (The "Hero" Moment):
 - High Agency & Drive: A moment where they pushed through a blocker, took a risk, or did something unasked because they cared.
 - Deep Problem Solving: Walking through a complex decision or tradeoff. Not just "what" they did, but "why" and "how".
