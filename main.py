@@ -202,6 +202,9 @@ def analyze_interview(audio_path, progress_container):
 IMPORTANT CONTEXT:
 This candidate has already cleared Round 1 screening — they're in the top percentile for JD alignment and communication. Your job is to find the clip that shows them at their BEST. Highlight what makes them great, not what went wrong.
 
+CRITICAL INSTRUCTION:
+Listen to the ENTIRE audio file first. Do not just pick the first good answer you hear. Compare all candidate responses across the whole interview and pick the absolute strongest single moment.
+
 WHAT TO LOOK FOR:
 - Ownership: did they build something end-to-end?
 - Initiative: did they go beyond what was asked?
@@ -250,7 +253,6 @@ eg:"bro, this guys knows his shit" or "this guy BS's his way when put on the spo
     
     progress_container.markdown('<p class="progress-step done">✓ analysis complete</p>', unsafe_allow_html=True)
     return response.text
-
 
 def process_audio(audio_path, progress_container):
     """Process audio file and display results"""
