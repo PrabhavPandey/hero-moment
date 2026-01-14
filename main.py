@@ -197,26 +197,29 @@ def analyze_interview(audio_path, progress_container):
     
     genai.configure(api_key=GEMINI_API_KEY)
     
-    prompt = """You're a close friend of a interviewee. They asked you to listen to this interview and send the single most impressive ~45 second clip that would convince a hiring manager to hire this person.
+    prompt = """You're the close friend of a hiring manager. They asked you to listen to this interview and send them the single most impressive ~45 second clip that would convince them to hire this person.
 
 CRITICAL INSTRUCTION:
-Listen to the ENTIRE audio file first. Do not just pick the first good answer you hear.
+Listen to the ENTIRE audio file first. Do not just pick the first good answer you hear. Compare all candidate responses across the whole interview and pick the absolute strongest single moment.
 
-priority order:
-
-1. look for a clip that displays their drive, passion and motivaion for the role.
-2. if not present, move to WHAT TO LOOK FOR (The "Hero" Moment).
-
-WHAT TO LOOK FOR (The "Hero" Moment):
+THE "HERO" MOMENT CRITERIA (Prioritize these):
 - High Agency & Drive: A moment where they pushed through a blocker, took a risk, or did something unasked because they cared.
 - Deep Problem Solving: Walking through a complex decision or tradeoff. Not just "what" they did, but "why" and "how".
 - Unique Insight: A contrarian opinion or a deep learning that shows they really understand their craft.
 - "Spiky" Traits: Obsession with quality, extreme user empathy, or technical depth.
 
+STRICT EXCLUSION RULES (Discard any clip that matches these):
+1. NO READING/RECITING: Exclude moments where the candidate is reading text, reciting a script, or quoting verbatim material.
+2. NO HYPOTHETICALS: Exclude "Let's say..." or "If I were..." scenarios. Only real, past-tense actions count.
+3. NO BIOS/INTROS: Exclude standard "My name is..." or resume walkthroughs.
+4. NO GENERIC PROCESS: Exclude dry descriptions of standard methodologies (e.g., "We used Agile").
+5. NO SURFACE-LEVEL STORIES: Exclude event descriptions that lack personal motivation or internal thinking.
+
 STRICT GUARDRAILS:
 1. CANDIDATE ONLY: The clip must be the candidate speaking. Never include the interviewer's voice.
 2. ONE CONTINUOUS SEGMENT: No stitching. Pick one unbroken clip.
-3. SKIP: Filler small talk, logistics ("can you hear me"), greetings.
+3. CONFIDENT & AUTHENTIC: Prefer moments where they sound sure of themselves.
+4. SKIP: Filler small talk, logistics ("can you hear me"), greetings, and generic surface-level answers.
 
 Return JSON only:
 {
