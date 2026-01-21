@@ -1,1 +1,4 @@
 ffmpeg
+libopus0
+libvorbis0a
+libogg0
