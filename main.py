@@ -173,10 +173,12 @@ def download_audio(url, progress_container):
 
 def extract_audio(input_path, start, end, output_path):
     """Extract audio segment using ffmpeg"""
+    duration = end - start
     cmd = [
         'ffmpeg', '-y',
-        '-ss', str(start), '-i', input_path,
-        '-t', str(end - start),
+        '-i', input_path,
+        '-ss', str(start),
+        '-t', str(duration),
         '-c:a', 'libmp3lame', '-q:a', '2',
         output_path
     ]
@@ -184,9 +186,11 @@ def extract_audio(input_path, start, end, output_path):
     if result.returncode != 0:
         st.error(f"ffmpeg failed: {result.stderr[:500]}")
         return False
-    if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+    file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
+    if file_size == 0:
         st.error("ffmpeg produced empty file")
         return False
+    st.caption(f"🎵 extracted {duration:.0f}s clip ({file_size/1024:.1f}KB)")
     return True
 
 
