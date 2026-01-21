@@ -238,14 +238,29 @@ Be informal, brutally honest, yet directional. Lowercase, no fluff.
 eg:"this guy knows his shit" or "this guy BS's his way when put on the spot"
 
 """
-    model = genai.GenerativeModel('gemini-2.5-pro')
-    response = model.generate_content(
-        [genai.upload_file(audio_path), prompt],
-        generation_config={"response_mime_type": "application/json"}
-    )
-    
-    progress_container.markdown('<p class="progress-step done">✓ analysis complete</p>', unsafe_allow_html=True)
-    return response.text
+    try:
+        model = genai.GenerativeModel('gemini-2.5-pro')
+        uploaded_file = genai.upload_file(audio_path)
+        
+        # Wait for file to be processed if needed (audio usually quick)
+        # import time
+        # while uploaded_file.state.name == "PROCESSING":
+        #     time.sleep(1)
+        #     uploaded_file = genai.get_file(uploaded_file.name)
+
+        response = model.generate_content(
+            [uploaded_file, prompt],
+            generation_config={"response_mime_type": "application/json"}
+        )
+        return response.text
+    except Exception as e:
+        error_msg = str(e)
+        if "API_KEY_INVALID" in error_msg or "expired" in error_msg.lower():
+            st.error("❌ API key issue. Please regenerate your key at https://aistudio.google.com/app/apikey")
+        else:
+            st.error(f"Gemini API Error: {e}")
+        st.info(f"Debug: Key starts with '{GEMINI_API_KEY[:10]}...' (length: {len(GEMINI_API_KEY)})")
+        return "{}"
 
 def process_audio(audio_path, progress_container):
     """Process audio file and display results"""
