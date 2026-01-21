@@ -3,7 +3,6 @@ import os
 import tempfile
 import subprocess
 import json
-import time
 import requests
 import google.generativeai as genai
 
@@ -240,13 +239,14 @@ eg:"this guy knows his shit" or "this guy BS's his way when put on the spot"
 
 """
     try:
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        model = genai.GenerativeModel('gemini-2.5-pro')
         uploaded_file = genai.upload_file(audio_path)
         
-        # Wait for file to be processed
-        while uploaded_file.state.name == "PROCESSING":
-            time.sleep(1)
-            uploaded_file = genai.get_file(uploaded_file.name)
+        # Wait for file to be processed if needed (audio usually quick)
+        # import time
+        # while uploaded_file.state.name == "PROCESSING":
+        #     time.sleep(1)
+        #     uploaded_file = genai.get_file(uploaded_file.name)
 
         response = model.generate_content(
             [uploaded_file, prompt],
@@ -254,9 +254,7 @@ eg:"this guy knows his shit" or "this guy BS's his way when put on the spot"
         )
         return response.text
     except Exception as e:
-        error_msg = str(e)
         st.error(f"Gemini API Error: {e}")
-        st.info(f"Debug: Key starts with '{GEMINI_API_KEY[:10]}...' (length: {len(GEMINI_API_KEY)})")
         return "{}"
 
 def process_audio(audio_path, progress_container):
