@@ -210,10 +210,9 @@ THE "HERO" MOMENT CRITERIA (Prioritize these):
 
 STRICT EXCLUSION RULES (Discard any clip that matches these):
 1. NO READING/RECITING: Exclude moments where the candidate is reading text, reciting a script, or quoting verbatim material.
-2. NO HYPOTHETICALS: Exclude "Let's say..." or "If I were..." scenarios. Only real, past-tense actions count.
-3. NO BIOS/INTROS: Exclude standard "My name is..." or resume walkthroughs.
-4. NO GENERIC PROCESS: Exclude dry descriptions of standard methodologies (e.g., "We used Agile").
-5. NO SURFACE-LEVEL STORIES: Exclude event descriptions that lack personal motivation or internal thinking.
+2. NO BIOS/INTROS: Exclude standard "My name is..." or resume walkthroughs.
+3. NO GENERIC PROCESS: Exclude dry descriptions of standard methodologies (e.g., "We used Agile").
+4. NO SURFACE-LEVEL STORIES: Exclude event descriptions that lack personal motivation or internal thinking.
 
 STRICT GUARDRAILS:
 1. CANDIDATE ONLY: The clip must be the candidate speaking. Never include the interviewer's voice.
