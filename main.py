@@ -174,21 +174,38 @@ def download_audio(url, progress_container):
 def extract_audio(input_path, start, end, output_path):
     """Extract audio segment using ffmpeg"""
     duration = end - start
-    cmd = [
+    
+    # First decode entire file to wav (avoids ogg/opus seeking issues)
+    wav_path = output_path.replace('.mp3', '.wav')
+    decode_cmd = [
+        'ffmpeg', '-y', '-i', input_path,
+        '-ar', '44100', '-ac', '2',
+        wav_path
+    ]
+    decode_result = subprocess.run(decode_cmd, capture_output=True, text=True)
+    if decode_result.returncode != 0:
+        st.error(f"ffmpeg decode failed: {decode_result.stderr[:300]}")
+        return False
+    
+    # Then extract segment from wav and encode to mp3
+    extract_cmd = [
         'ffmpeg', '-y',
-        '-i', input_path,
         '-ss', str(start),
+        '-i', wav_path,
         '-t', str(duration),
         '-c:a', 'libmp3lame', '-q:a', '2',
         output_path
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(extract_cmd, capture_output=True, text=True)
+    os.unlink(wav_path)  # Clean up wav
+    
     if result.returncode != 0:
-        st.error(f"ffmpeg failed: {result.stderr[:500]}")
+        st.error(f"ffmpeg extract failed: {result.stderr[:300]}")
         return False
+    
     file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
-    if file_size == 0:
-        st.error("ffmpeg produced empty file")
+    if file_size < 1000:
+        st.error(f"Clip too small ({file_size}B). Timestamps may be invalid.")
         return False
     st.caption(f"🎵 extracted {duration:.0f}s clip ({file_size/1024:.1f}KB)")
     return True
