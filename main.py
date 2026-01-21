@@ -282,17 +282,12 @@ def process_audio(audio_path, progress_container):
     end = result.get('end_time_seconds')
     
     if start is not None and end is not None:
-        # Add 2s buffer to start to catch cutoffs
-        start = max(0, start - 2)
-        end = end + 1
-
+        # Use Gemini's timestamps directly for accuracy with verbatim
+        start = max(0, start)
+        
         # Enforce minimum 30s duration by extending end time
         if end - start < 30:
             end = start + 30
-        
-        # Debug info for troubleshooting audio issues
-        # with st.expander("debug timing"):
-        #     st.write(f"Start: {start}, End: {end}, Duration: {end-start}")
 
         st.markdown(f'<span class="timestamp-pill">{int(start//60)}:{int(start%60):02d} → {int(end//60)}:{int(end%60):02d}</span>', unsafe_allow_html=True)
         
