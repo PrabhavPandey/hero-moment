@@ -95,7 +95,8 @@ def extract_clip(input_path, start, end, output_path):
 
 def analyze(audio_path, progress):
     """Send to Gemini and get hero moment"""
-    progress.markdown('<p class="progress-step">🔍 analyzing interview...</p>', unsafe_allow_html=True)
+    progress.markdown('<p class="progress-step">🔍 gemini is doing its thing...</p>', unsafe_allow_html=True)
+    progress.markdown('<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ2ZhZmk0M3I3MWNzbzU3bXkxcW84aWNtbmJwbnZ0M2Z6Nm0wZG1xYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/DfSXiR60W9MVq/giphy.gif" width="300" style="margin-bottom: 1rem; border-radius: 8px;">', unsafe_allow_html=True)
     
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel('gemini-2.5-pro')
