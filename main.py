@@ -50,10 +50,10 @@ PROMPT = """You're helping a hiring manager find the single most impressive ~45 
 
 Listen to the ENTIRE interview first. Pick the absolute strongest moment where the candidate shines.
 
-WHAT MAKES A GREAT CLIP:
-- High agency: pushed through blockers, took risks, did something unasked
-- Deep thinking: explains "why" and "how", not just "what"
-- Unique insight: contrarian opinions or deep learnings about their craft
+If a clip demonstrates any one or a combination of these, include it:
+1. Shows they are truly hungry.
+2. Is genuinely good to speak to.
+3. Clearly understands their work, is a top percentile performer in their field.
 
 STRICT RULES:
 1. CANDIDATE ONLY - never include interviewer's voice
@@ -67,14 +67,18 @@ Return JSON only:
   "end_time_seconds": number,
   "context": "1-2 sentences: what role/company is this for, and what specific thing are they explaining in this clip",
   "verbatim": "EXACT transcript of what the candidate says in the clip",
-  "vibe": ["trait 1", "trait 2", "weakness/improvement area"]
+  "vibe": ["trait 1", "trait 2"],
+  "red_flag": "the red flag observation"
 }
 
-VIBE = 3 bullets about the candidate based on the ENTIRE interview:
+VIBE = 2 bullets about the candidate based on the ENTIRE interview:
 - Two strengths (informal, lowercase, e.g. "knows their shit", "thinks like a founder")
-- One weakness or area to improve, with brief advice
-"""
 
+RED FLAG⛳️ = 1 bullet about the candidate based on the ENTIRE interview:
+- One weakness or area to improve, with brief advice.
+- eg: he BS'd on his resume. when pressed on a key data loss metric, he admitted it was an 'estimation' because the prior system lacked observability, which is a major red flag for resume inflation.
+
+"""
 
 def extract_clip(input_path, start, end, output_path):
     """Extract audio clip using two-step process for ogg compatibility"""
@@ -160,10 +164,14 @@ def process(audio_path, progress):
         st.markdown('<p class="section-label">vibe check</p>', unsafe_allow_html=True)
         bullets = ''.join(f'<li>{v.lower()}</li>' for v in result['vibe'])
         st.markdown(f'<ul class="bullet-list">{bullets}</ul>', unsafe_allow_html=True)
+
+    # Red Flag
+    if result.get('red_flag'):
+        st.markdown('<p class="section-label" style="color: #ff4b4b; margin-top: 1rem;">red flag ⛳️</p>', unsafe_allow_html=True)
+        st.markdown(f'<ul class="bullet-list"><li>{result["red_flag"].lower()}</li></ul>', unsafe_allow_html=True)
     
     os.unlink(audio_path)
     st.balloons()
-
 
 def main():
     if not GEMINI_API_KEY:
