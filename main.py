@@ -53,7 +53,6 @@ Listen to the ENTIRE interview first. Pick the absolute strongest moment where t
 CRITICAL REQUIREMENT:
 The clip MUST be understandable by a non-technical business person (e.g., a CEO or Founder).
 - AVOID deep technical jargon, specific protocols, or code-level details unless they are explained simply.
-- PRIORITIZE clips that show strategic thinking, clear communication, and business impact.
 - The vibe should be "this person gets it," not "this person knows the syntax."
 
 If a clip demonstrates any one or a combination of these, include it:
