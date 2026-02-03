@@ -51,7 +51,7 @@ PROMPT = """You're helping a hiring manager find the single most impressive ~45 
 Listen to the ENTIRE interview first. Pick the absolute strongest moment where the candidate shines.
 
 If a clip demonstrates any one or a combination of these, include it:
-1. Shows they are truly hungry.
+1. Shows they are truly hungry, or covers the "why" of why they want this role/this line of work.
 2. Is genuinely good to speak to.
 3. Clearly understands their work, is a top percentile performer in their field.
 
