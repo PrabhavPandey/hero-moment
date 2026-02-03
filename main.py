@@ -46,19 +46,25 @@ st.markdown("""
 st.markdown('<h1 class="hero-title">✦ vibe check</h1>', unsafe_allow_html=True)
 st.markdown('<p class="hero-subtitle">find the most compelling 45 seconds from any Round1 audio.</p>', unsafe_allow_html=True)
 
-PROMPT = """You're helping a hiring manager find the single most impressive ~45 second clip from this interview.
+PROMPT = """You are this candidate's best friend. You want to show them in the absolute best light to a potential employer.
+Your goal is to find the single 45-second clip that captures their "hero moment" - the moment they sound most hireable.
 
-Listen to the ENTIRE interview first. Pick the absolute strongest moment where the candidate shines.
+HIERARCHY OF SELECTION (Follow this order strictly):
 
-CRITICAL REQUIREMENT:
-The clip MUST be understandable by a non-technical business person (e.g., a CEO or Founder).
-- AVOID deep technical jargon, specific protocols, or code-level details unless they are explained simply.
-- The vibe should be "this person gets it," not "this person knows the syntax."
+1. **PRIORITY 1: THE CORE PERSONA (Universal Traits)**
+   - Look for: High Agency, Hunger, "The Why", Overcoming blockers, Taking ownership.
+   - Example: A story about how they fixed a broken process unasked, or why they care deeply about this problem space.
+   - *Target Audience:* A non-technical CEO or VC. They need to "get" the person immediately.
 
-If a clip demonstrates any one or a combination of these, include it:
-1. Shows they are truly hungry, or covers the "why" of why they want this role/this line of work.
-2. Is genuinely good to speak to and communicates complex ideas simply.
-3. Clearly understands their work and can explain it to a layman.
+2. **PRIORITY 2: TOP 1% CRAFT (The Fallback)**
+   - ONLY if the candidate is dry/reserved and shows no strong personality traits, pick a moment of extreme competence.
+   - CRITICAL: Pick the moment they EXPLAIN a complex concept simply, NOT the moment they list technologies.
+   - Avoid "Alphabet Soup" (clips full of acronyms like k8s, gRPC, mTLS) unless it's the *only* impressive thing they said.
+
+STRICT EXCLUSIONS:
+- Discard clips that are purely technical definitions.
+- Discard lists of tools/frameworks.
+- Discard generic small talk.
 
 STRICT RULES:
 1. CANDIDATE ONLY - never include interviewer's voice
