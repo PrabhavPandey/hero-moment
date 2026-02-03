@@ -226,6 +226,5 @@ def main():
                 f.write(uploaded.getvalue())
                 process(f.name, progress)
 
-
 if __name__ == "__main__":
     main()
