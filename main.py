@@ -83,11 +83,14 @@ Return JSON only:
 }
 
 VIBE = 2 bullets about the candidate based on the ENTIRE interview:
-- Two strengths (informal, lowercase, e.g. "knows their shit", "thinks like a founder")
+- Two strengths.
+- TONE: Informal, "bro-to-bro" chat between friends. Highly enthusiastic if good.
+- Examples: "bro this guy knows his shit, super senior", "dude this guy is so motivated, you'd love working with him", "honestly he's a bit scattered but brilliance is there"
 
 RED FLAG⛳️ = 1 bullet about the candidate based on the ENTIRE interview:
 - One weakness or area to improve, with brief advice.
-- eg: he BS'd on his resume. when pressed on a key data loss metric, he admitted it was an 'estimation' because the prior system lacked observability, which is a major red flag for resume inflation.
+- TONE: Informal, honest "bro" advice.
+- eg: "he BS'd on his resume. admitted a metric was an 'estimation' when pressed. major red flag bro."
 
 """
 
@@ -96,16 +99,23 @@ def extract_clip(input_path, start, end, output_path):
     wav_path = output_path.replace('.mp3', '.wav')
     
     # Decode to wav first (avoids ogg seeking issues)
-    if subprocess.run(['ffmpeg', '-y', '-i', input_path, '-ar', '44100', '-ac', '2', wav_path], 
-                      capture_output=True).returncode != 0:
+    cmd_decode = ['ffmpeg', '-y', '-i', input_path, '-ar', '44100', '-ac', '2', wav_path]
+    result_decode = subprocess.run(cmd_decode, capture_output=True, text=True)
+    if result_decode.returncode != 0:
+        st.error(f"FFmpeg decode failed: {result_decode.stderr[:300]}")
         return False
     
     # Extract segment from wav
-    result = subprocess.run(['ffmpeg', '-y', '-ss', str(start), '-i', wav_path, '-t', str(end - start),
-                            '-c:a', 'libmp3lame', '-q:a', '2', output_path], capture_output=True)
+    cmd_extract = ['ffmpeg', '-y', '-ss', str(start), '-i', wav_path, '-t', str(end - start),
+                   '-c:a', 'libmp3lame', '-q:a', '2', output_path]
+    result_extract = subprocess.run(cmd_extract, capture_output=True, text=True)
     os.unlink(wav_path)
     
-    return result.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 1000
+    if result_extract.returncode != 0:
+        st.error(f"FFmpeg extract failed: {result_extract.stderr[:300]}")
+        return False
+
+    return os.path.exists(output_path) and os.path.getsize(output_path) > 1000
 
 
 def analyze(audio_path, progress):
