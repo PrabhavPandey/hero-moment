@@ -50,10 +50,16 @@ PROMPT = """You're helping a hiring manager find the single most impressive ~45 
 
 Listen to the ENTIRE interview first. Pick the absolute strongest moment where the candidate shines.
 
+CRITICAL REQUIREMENT:
+The clip MUST be understandable by a non-technical business person (e.g., a CEO or Founder).
+- AVOID deep technical jargon, specific protocols, or code-level details unless they are explained simply.
+- PRIORITIZE clips that show strategic thinking, clear communication, and business impact.
+- The vibe should be "this person gets it," not "this person knows the syntax."
+
 If a clip demonstrates any one or a combination of these, include it:
 1. Shows they are truly hungry, or covers the "why" of why they want this role/this line of work.
-2. Is genuinely good to speak to.
-3. Clearly understands their work, is a top percentile performer in their field.
+2. Is genuinely good to speak to and communicates complex ideas simply.
+3. Clearly understands their work and can explain it to a layman.
 
 STRICT RULES:
 1. CANDIDATE ONLY - never include interviewer's voice
